@@ -1,5 +1,8 @@
-use crate::{lexer::Lexer, models::{Accent, ColumnAlign, LineThickness, Node, Variant}, token::Token};
-
+use crate::{
+    lexer::Lexer,
+    models::{Accent, ColumnAlign, LineThickness, Node, Variant},
+    token::Token,
+};
 
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
@@ -32,21 +35,21 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> Vec<Node<'a>> {
-      let mut nodes = Vec::new();
-      while self.cur != Token::EOF {
-          nodes.push(self.next_node());
-          self.next_token();
-      }
-      nodes
+        let mut nodes = Vec::new();
+        while let Some(node) = self.next() {
+            nodes.push(node);
+            self.next_token();
+        }
+        nodes
     }
 
     fn next_token(&mut self) {
         self.cur = self.peek;
         self.peek = if self.cur.acts_on_a_digit() && self.lexer.cur.is_ascii_digit() {
-          let c = self.lexer.read_char();
-          Token::Number(&self.lexer.input[self.lexer.index - c.len_utf8()..self.lexer.index])
+            let c = self.lexer.read_char();
+            Token::Number(&self.lexer.input[self.lexer.index - c.len_utf8()..self.lexer.index])
         } else {
-          self.lexer.next_token()
+            self.lexer.next_token()
         };
     }
 
@@ -54,15 +57,15 @@ impl<'a> Parser<'a> {
         self.next_token();
         let mut nodes = Vec::new();
         while self.cur != end {
-          if self.cur == Token::EOF {
-            return None;
-          }
+            if self.cur == Token::EOF {
+                return None;
+            }
             nodes.push(self.next_node());
             self.next_token();
         }
         if nodes.is_empty() {
-          None }
-          else if nodes.len() == 1 {
+            None
+        } else if nodes.len() == 1 {
             nodes.pop()
         } else {
             Some(Node::Row(nodes))
@@ -70,13 +73,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_text(&mut self) -> &'a str {
-      self.next_token();
-      let mut offset = 0;
-      while let Token::Letter(x, _) = self.cur {
-          offset += x.len();
-          self.next_token();
-      }
-      &self.lexer.input[self.lexer.index - offset..self.lexer.index]
+        self.next_token();
+        let mut offset = 0;
+        while let Token::Letter(x, _) = self.cur {
+            offset += x.len();
+            self.next_token();
+        }
+        &self.lexer.input[self.lexer.index - offset..self.lexer.index]
     }
 
     fn next_node(&mut self) -> Node<'a> {
@@ -122,7 +125,11 @@ impl<'a> Parser<'a> {
                 let numerator = self.next_node();
                 self.next_token();
                 let denominator = self.next_node();
-                Node::Frac(Box::new(numerator), Box::new(denominator), LineThickness::Medium)
+                Node::Frac(
+                    Box::new(numerator),
+                    Box::new(denominator),
+                    LineThickness::Medium,
+                )
             }
             Token::Binom(display) => {
                 self.next_token();
@@ -315,24 +322,30 @@ impl<'a> Parser<'a> {
                 _ => Node::Operator(int),
             },
             Token::LSeperator(open) => {
-              let close = match open {
-                "(" => ")",
-                "[" => "]",
-                "{" => "}",
-                "⌈" => "⌉",
-                "⌊" => "⌋",
-                "⦗" => "⦘",
-                "⟦" => "⟧",
-                "|" => "|",
-                _ => unreachable!("Should not happen"),
-            };
-            let content = self.parse_group(Token::RSeperator(close));
-          match content {
-            Some(inner) => Node::Fenced { open, close, content: Box::new(inner) },
-            None => Node::OtherOperator(open),
-          }
-        },
-            Token::Paren('|') => self.parse_group(Token::Paren('|')).unwrap_or(Node::Operator("|")),
+                let close = match open {
+                    "(" => ")",
+                    "[" => "]",
+                    "{" => "}",
+                    "⌈" => "⌉",
+                    "⌊" => "⌋",
+                    "⦗" => "⦘",
+                    "⟦" => "⟧",
+                    "|" => "|",
+                    _ => unreachable!("Should not happen"),
+                };
+                let content = self.parse_group(Token::RSeperator(close));
+                match content {
+                    Some(inner) => Node::Fenced {
+                        open,
+                        close,
+                        content: Box::new(inner),
+                    },
+                    None => Node::OtherOperator(open),
+                }
+            }
+            Token::Paren('|') => self
+                .parse_group(Token::Paren('|'))
+                .unwrap_or(Node::Operator("|")),
             // Token::Left => {
             //     self.next_token();
             //     let open = match self.cur {
@@ -377,7 +390,9 @@ impl<'a> Parser<'a> {
                 } else {
                     (ColumnAlign::Center, environment)
                 };
-                let content = self.parse_group(Token::End).unwrap_or(Node::Undefined(Token::EOF)); // TODO is this correct?
+                let content = self
+                    .parse_group(Token::End)
+                    .unwrap_or(Node::Undefined(Token::EOF)); // TODO is this correct?
                 let content = Node::Matrix(Box::new(content), columnalign);
                 let matrix = match environment {
                     "matrix" => content,
@@ -447,25 +462,26 @@ mod test {
     //   let mut parser = Parser::new(input);
     //   let ast = parser.parse();
     // }
-    
+
     #[test]
     fn test_frac() {
-      let input = r#"\frac{x + 1}{y - 2}"#;
-      let ast = Parser::new(input).parse();
-      assert_eq!(ast, vec![
-        Node::Frac(
-          Box::new(Node::Row(vec![
-            Node::Letter("x", Variant::Italic),
-            Node::Operator("+"),
-            Node::Number("1"),
-          ])),
-          Box::new(Node::Row(vec![
-            Node::Letter("y", Variant::Italic),
-            Node::Operator("-"),
-            Node::Number("2"),
-          ])),
-          LineThickness::Medium,
-        ),
-      ]);
+        let input = r#"\frac{x + 1}{y - 2}"#;
+        let ast = Parser::new(input).parse();
+        assert_eq!(
+            ast,
+            vec![Node::Frac(
+                Box::new(Node::Row(vec![
+                    Node::Letter("x", Variant::Italic),
+                    Node::Operator("+"),
+                    Node::Number("1"),
+                ])),
+                Box::new(Node::Row(vec![
+                    Node::Letter("y", Variant::Italic),
+                    Node::Operator("-"),
+                    Node::Number("2"),
+                ])),
+                LineThickness::Medium,
+            ),]
+        );
     }
 }

@@ -101,4 +101,3 @@ pub enum Node<'a> {
     Style(Option<DisplayStyle>, Box<Node<'a>>),
     Undefined(Token<'a>),
 }
-
