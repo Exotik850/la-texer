@@ -16,6 +16,7 @@ impl<'a> Iterator for Parser<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = self.next_node();
+        self.next_token();
         if let Node::Undefined(Token::EOF) = node {
             None
         } else {
@@ -122,12 +123,12 @@ impl<'a> Parser<'a> {
             }
             Token::Frac => {
                 self.next_token();
-                let numerator = self.next_node();
+                let numerator = self.next_node().arg();
                 self.next_token();
-                let denominator = self.next_node();
+                let denominator = self.next_node().arg();
                 Node::Frac(
-                    Box::new(numerator),
-                    Box::new(denominator),
+                    numerator,
+                    denominator,
                     LineThickness::Medium,
                 )
             }
@@ -162,65 +163,65 @@ impl<'a> Parser<'a> {
             }
             Token::Overset => {
                 self.next_token();
-                let over = self.next_node();
+                let over = self.next_node().arg();
                 self.next_token();
-                let target = self.next_node();
+                let target = self.next_node().arg();
                 Node::Overset {
-                    over: Box::new(over),
-                    target: Box::new(target),
+                    over,
+                    target
                 }
             }
             Token::Underset => {
                 self.next_token();
-                let under = self.next_node();
+                let under = self.next_node().arg();
                 self.next_token();
-                let target = self.next_node();
+                let target = self.next_node().arg();
                 Node::Underset {
-                    under: Box::new(under),
-                    target: Box::new(target),
+                    under,
+                    target,
                 }
             }
             Token::Overbrace(x) => {
                 self.next_token();
-                let target = self.single_node();
+                let target = self.single_node().arg();
                 if self.peek == Token::Circumflex {
                     self.next_token();
                     self.next_token();
-                    let expl = self.single_node();
+                    let expl = self.single_node().arg();
                     let over = Node::Overset {
-                        over: Box::new(expl),
+                        over: expl,
                         target: Box::new(Node::Operator(x)),
                     };
                     Node::Overset {
                         over: Box::new(over),
-                        target: Box::new(target),
+                        target,
                     }
                 } else {
                     Node::Overset {
                         over: Box::new(Node::Operator(x)),
-                        target: Box::new(target),
+                        target,
                     }
                 }
             }
             Token::Underbrace(x) => {
                 self.next_token();
-                let target = self.single_node();
+                let target = self.single_node().arg();
                 if self.peek == Token::Underscore {
                     self.next_token();
                     self.next_token();
-                    let expl = self.single_node();
+                    let expl = self.single_node().arg();
                     let under = Node::Underset {
-                        under: Box::new(expl),
+                        under: expl,
                         target: Box::new(Node::Operator(x)),
                     };
                     Node::Underset {
                         under: Box::new(under),
-                        target: Box::new(target),
+                        target,
                     }
                 } else {
                     Node::Underset {
                         under: Box::new(Node::Operator(x)),
-                        target: Box::new(target),
+                        target,
                     }
                 }
             }
@@ -228,35 +229,35 @@ impl<'a> Parser<'a> {
                 Token::Underscore => {
                     self.next_token();
                     self.next_token();
-                    let under = self.single_node();
+                    let under = self.single_node().arg();
                     if self.peek == Token::Circumflex {
                         self.next_token();
                         self.next_token();
-                        let over = self.single_node();
+                        let over = self.single_node().arg();
                         Node::UnderOver {
                             target: Box::new(Node::Operator(op)),
-                            under: Box::new(under),
-                            over: Box::new(over),
+                            under,
+                            over,
                         }
                     } else {
-                        Node::Under(Box::new(Node::Operator(op)), Box::new(under))
+                        Node::Under(Box::new(Node::Operator(op)), under)
                     }
                 }
                 Token::Circumflex => {
                     self.next_token();
                     self.next_token();
-                    let over = self.single_node();
+                    let over = self.single_node().arg();
                     if self.peek == Token::Underscore {
                         self.next_token();
                         self.next_token();
-                        let under = self.single_node();
+                        let under = self.single_node().arg();
                         Node::UnderOver {
                             target: Box::new(Node::Operator(op)),
-                            under: Box::new(under),
-                            over: Box::new(over),
+                            under,
+                            over,
                         }
                     } else {
-                        Node::OverOp(op, Accent::False, Box::new(over))
+                        Node::OverOp(op, Accent::False, over)
                     }
                 }
                 _ => Node::Operator(op),
@@ -266,8 +267,8 @@ impl<'a> Parser<'a> {
                 if self.peek == Token::Underscore {
                     self.next_token();
                     self.next_token();
-                    let under = self.single_node();
-                    Node::Under(Box::new(lim), Box::new(under))
+                    let under = self.next_node().arg();
+                    Node::Under(Box::new(lim), under)
                 } else {
                     lim
                 }
@@ -288,35 +289,35 @@ impl<'a> Parser<'a> {
                 Token::Underscore => {
                     self.next_token();
                     self.next_token();
-                    let sub = self.single_node();
+                    let sub = self.single_node().arg();
                     if self.peek == Token::Circumflex {
                         self.next_token();
                         self.next_token();
-                        let sup = self.single_node();
+                        let sup = self.single_node().arg();
                         Node::SubSup {
                             target: Box::new(Node::Operator(int)),
-                            sub: Box::new(sub),
-                            sup: Box::new(sup),
+                            sub,
+                            sup,
                         }
                     } else {
-                        Node::Subscript(Box::new(Node::Operator(int)), Box::new(sub))
+                        Node::Subscript(Box::new(Node::Operator(int)), sub)
                     }
                 }
                 Token::Circumflex => {
                     self.next_token();
                     self.next_token();
-                    let sup = self.single_node();
+                    let sup = self.single_node().arg();
                     if self.peek == Token::Underscore {
                         self.next_token();
                         self.next_token();
-                        let sub = self.single_node();
+                        let sub = self.single_node().arg();
                         Node::SubSup {
                             target: Box::new(Node::Operator(int)),
-                            sub: Box::new(sub),
-                            sup: Box::new(sup),
+                            sub,
+                            sup,
                         }
                     } else {
-                        Node::Superscript(Box::new(Node::Operator(int)), Box::new(sup))
+                        Node::Superscript(Box::new(Node::Operator(int)), sup)
                     }
                 }
                 _ => Node::Operator(int),
