@@ -2,14 +2,14 @@ use crate::models::{Accent, DisplayStyle, Variant};
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Token<'a> {
-    Illegal(char),
+    Illegal(&'a str),
     EOF,
     Begin,
     End,
     Ampersand,
     NewLine,
     Middle,
-    Paren(char),
+    Paren(&'a str),
     LSeperator(&'a str),
     RSeperator(&'a str),
     Frac,
@@ -40,6 +40,34 @@ pub enum Token<'a> {
 }
 
 impl<'a> Token<'a> {
+    pub fn to_str(self) -> Option<&'a str> {
+        match self {
+            Token::Binom(t) => t.map(DisplayStyle::to_str),
+            Token::Style(v) => Some(v.to_str()),
+            Token::Space(_) => Some(" "),
+            Token::Illegal(t)
+            | Token::Paren(t)
+            | Token::LSeperator(t)
+            | Token::RSeperator(t)
+            | Token::Overbrace(t)
+            | Token::Underbrace(t)
+            | Token::Integral(t)
+            | Token::Lim(t)
+            | Token::Big(t)
+            | Token::Over(t, _)
+            | Token::Under(t, _)
+            | Token::Operator(t)
+            | Token::BigOp(t)
+            | Token::Letter(t, _)
+            | Token::Number(t)
+            | Token::Function(t)
+            | Token::Command(t) => Some(t),
+            Token::NewLine => Some("\n"),
+            Token::Ampersand => Some("&"),
+            _ => None,
+        }
+    }
+
     pub(crate) fn acts_on_a_digit(&self) -> bool {
         match self {
             Token::Sqrt | Token::Frac | Token::Binom(_) | Token::Style(_) => true,
@@ -101,7 +129,7 @@ impl<'a> Token<'a> {
             "rgroup" => Token::RSeperator("⦘"),
             "llbracket" => Token::LSeperator("⟦"),
             "rrbracket" => Token::RSeperator("⟧"),
-            "|" => Token::Paren('\u{2225}'),
+            "|" => Token::Paren("\u{2225}"),
             "lim" => Token::Lim("lim"),
             "liminf" => Token::Lim("lim inf"),
             "limsup" => Token::Lim("lim sup"),
