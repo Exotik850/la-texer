@@ -2,14 +2,15 @@ use std::io::Write;
 use la_texer::{DisplayStyle, Node, Parser};
 
 fn main() {
-    let input = r#"\frac{dv}{dv x}\int_{a}^{b}f(x,t)dv t = \int_a^b\frac{\partial}{\partial x}f(x,t)dv t"#;
+    let input = r#"\begin{Vmatrix} \text{Whataburger} & 2 & 3 \\ a & b & c \end{Vmatrix}"#;
     let parser = Parser::new(input);
     let mut output = Vec::new();
     {
         let mut bufwriter = std::io::BufWriter::new(&mut output);
         write!(bufwriter, "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">").unwrap();
-        for token in parser {
-            // print!("{:?} ", token);
+        let tokens = parser.parse();
+        println!("{tokens:#?}");
+        for token in tokens.into_iter() {
             expand_node(&token, &mut bufwriter).unwrap();
         }
         write!(bufwriter, "</math>").unwrap();
@@ -124,10 +125,16 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
         } => {
             write!(
                 buf,
-                "<mrow><mo stretchy=\"true\" form=\"prefix\">{open}</mo>"
+                "<mrow>\
+                "
+                // <mo stretchy=\"true\" form=\"prefix\">"
             )?;
+            expand_node(open, buf)?;
+            // write!(buf, "</mo>")?;
             expand_node(content, buf)?;
-            write!(buf, "<mo stretchy=\"true\" form=\"postfix\">{close}</mo></mrow>")
+            // write!(buf, "<mo stretchy=\"true\" form=\"postfix\">")?;
+            expand_node(close, buf)?;
+            write!(buf, "</mrow>")
         }
         Node::StrechedOp(stretchy, op) => write!(buf, "<mo stretchy=\"{stretchy}\">{op}</mo>"),
         Node::OtherOperator(op) => write!(buf, "<mo>{op}</mo>"),
@@ -136,7 +143,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
         }
         Node::Text(text) => write!(buf, "<mtext>{text}</mtext>"),
         Node::Matrix(content, align) => {
-            write!(buf, "<mtable{align}><mtr><mtd>")?;
+            write!(buf, "<mtable align=\"{align}\"><mtr><mtd>")?;
 
             match content.as_ref() {
                 Node::Row(nodes) => {
@@ -160,7 +167,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
                 },
                 node => expand_node(node, buf)?,
             }
-            write!(buf, "</mtd></mtr></mtable>")
+            write!(buf, "</mtr></mtd></mtable>")
         }
         Node::Ampersand => write!(buf, "<mo>&#x0026;</mo>"),
         Node::NewLine => write!(buf, "<mspace linebreak=\"newline\"/>"),

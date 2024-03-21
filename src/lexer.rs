@@ -40,10 +40,23 @@ impl<'a> Lexer<'a> {
     /// 1 文字進む.
     pub fn read_char(&mut self) -> char {
         let c = self.cur;
+        self.index += c.len_utf8();
         self.cur = self.peek;
         self.peek = self.chars.next().unwrap_or('\u{0}');
-        self.index += c.len_utf8();
         c
+    }
+
+    #[inline]
+    pub(crate) fn grab_slice(&self, offset: usize) -> &'a str {
+        if offset > self.index {
+            panic!("offset is greater than index");
+        }
+
+        if offset > self.input.len() {
+            return self.input;
+        }
+
+        &self.input[self.index - offset..self.index]
     }
 
     /// 空白文字をスキップする.
@@ -58,17 +71,16 @@ impl<'a> Lexer<'a> {
 
     fn read_command(&mut self) -> Token<'a> {
         self.read_char(); // skip '\'
-        let c = self.read_char();
-        let mut offset = c.len_utf8();
+        self.read_char();
+        let start = self.index - 1;
         while self.cur.is_ascii_alphabetic() {
-            let c = self.read_char();
-            offset += c.len_utf8();
+            self.read_char();
         }
-        Token::from_command(&self.input[self.index - offset..self.index])
+        Token::from_command(&self.input[start..self.index])
     }
 
     fn read_number(&mut self) -> Token<'a> {
-        let mut offset = 0;
+        let start = self.index;
         let mut has_period = false;
         loop {
             let cur = self.cur;
@@ -78,15 +90,13 @@ impl<'a> Lexer<'a> {
             if cur == '.' {
                 has_period = true;
             }
-            let c = self.read_char();
-            offset += c.len_utf8();
+            self.read_char();
         }
-        Token::Number(&self.input[self.index - offset..self.index])
+        Token::Number(&self.input[start..self.index])
     }
 
     pub fn next_token(&mut self) -> Token<'a> {
         self.skip_whitespace();
-
         let token = match self.cur {
             '=' => Token::Operator("="),
             ';' => Token::Operator(";"),
@@ -122,8 +132,7 @@ impl<'a> Lexer<'a> {
             ':' => {
                 if self.peek == '=' {
                     self.read_char();
-                    todo!()
-                    // Token::Paren(":=")
+                    Token::Paren(":=")
                 } else {
                     Token::Operator(":")
                 }
@@ -136,7 +145,7 @@ impl<'a> Lexer<'a> {
                     return self.read_number();
                 } else {
                     Token::Letter(
-                        &self.input[self.index..self.index + self.cur.len_utf8()],
+                        &self.input[self.index..self.index + c.len_utf8()],
                         if c.is_ascii_alphabetic() {
                             Variant::Italic
                         } else {
@@ -148,143 +157,5 @@ impl<'a> Lexer<'a> {
         };
         self.read_char();
         token
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::models::Variant;
-    use super::super::token::Token;
-    use super::Lexer;
-
-    fn handle_test(inputs: Vec<(&str, Vec<Token>)>) {
-      for (problem, answer) in inputs.iter() {
-        let mut lexer = Lexer::new(problem);
-        for answer in answer.iter() {
-            assert_eq!(&lexer.next_token(), answer);
-        }
-      }
-    }
-
-    #[test]
-    fn lexer_test() {
-        let problems = vec![
-            (r"3", vec![Token::Number("3")]),
-            (r"3.14", vec![Token::Number("3.14")]),
-            (r"3.14.", vec![Token::Number("3.14"), Token::Operator(".")]),
-            (r"x", vec![Token::Letter("x", Variant::Italic)]),
-            (r"\pi", vec![Token::Letter("π", Variant::Italic)]),
-            (
-                r"x = 3.14",
-                vec![
-                    Token::Letter("x", Variant::Italic),
-                    Token::Operator("="),
-                    Token::Number("3.14"),
-                ],
-            ),
-            (
-                r"\alpha\beta",
-                vec![
-                    Token::Letter("α", Variant::Italic),
-                    Token::Letter("β", Variant::Italic),
-                ],
-            ),
-            (
-                r"x+y",
-                vec![
-                    Token::Letter("x", Variant::Italic),
-                    Token::Operator("+"),
-                    Token::Letter("y", Variant::Italic),
-                ],
-            ),
-            (r"\ 1", vec![Token::Space(1.), Token::Number("1")]),
-        ];
-        handle_test(problems);
-    }
-
-    #[test]
-    fn test_frac() {
-      let input = vec!(
-        ("\\fracab", vec!(
-          Token::Command("fracab")
-        )),
-        ("\\frac{a}{b}", vec!(
-          Token::Frac,
-          Token::LSeperator("{"),
-          Token::Letter("a", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::LSeperator("{"),
-          Token::Letter("b", Variant::Italic),
-          Token::RSeperator("}"),
-        )),
-        ("\\frac{a}{b}c", vec!(
-          Token::Frac,
-          Token::LSeperator("{"),
-          Token::Letter("a", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::LSeperator("{"),
-          Token::Letter("b", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::Letter("c", Variant::Italic),
-        )),
-        ("\\frac{a}{\\frac{d}{e}}c", vec!(
-          Token::Frac,
-          Token::LSeperator("{"),
-          Token::Letter("a", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::LSeperator("{"),
-          Token::Frac,
-          Token::LSeperator("{"),
-          Token::Letter("d", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::LSeperator("{"),
-          Token::Letter("e", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::RSeperator("}"),
-          Token::Letter("c", Variant::Italic),
-        )),
-        (r#"\int_{a}^bf(x)dv x"#, vec![
-          Token::Integral("∫"),
-          Token::Underscore,
-          Token::LSeperator("{"),
-          Token::Letter("a", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::Circumflex,
-          Token::Letter("b", Variant::Italic),
-          Token::Letter("f", Variant::Italic),
-          Token::LSeperator("("),
-          Token::Letter("x", Variant::Italic),
-          Token::RSeperator(")"),
-          Token::Letter("d", Variant::Italic),
-          Token::Letter("v", Variant::Italic),
-          Token::Letter("x", Variant::Italic),
-        
-        ])
-      );
-      handle_test(input);
-    }
-
-    #[test]
-    fn test_int() {
-      handle_test(vec![
-        ("\\int^{a}_{b} f(x)", vec![
-          Token::Integral("∫"),
-          Token::Circumflex,
-          Token::LSeperator("{"),
-          Token::Letter("a", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::Underscore,
-          Token::LSeperator("{"),
-          Token::Letter("b", Variant::Italic),
-          Token::RSeperator("}"),
-          Token::Letter("f", Variant::Italic),
-          Token::LSeperator("("),
-          Token::Letter("x", Variant::Italic),
-          Token::RSeperator(")"),
-        ]),
-        // ("", vec![
-
-        // ])
-      ]);
     }
 }

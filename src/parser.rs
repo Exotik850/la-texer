@@ -37,9 +37,8 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> Vec<Node<'a>> {
         let mut nodes = Vec::new();
-        while let Some(node) = self.next() {
-          // println!("{node:?}");
-            nodes.push(node);
+        while self.cur != Token::EOF {
+            nodes.push(self.next_node());
             self.next_token();
         }
         nodes
@@ -49,7 +48,7 @@ impl<'a> Parser<'a> {
         self.cur = self.peek;
         self.peek = if self.cur.acts_on_a_digit() && self.lexer.cur.is_ascii_digit() {
             let c = self.lexer.read_char();
-            Token::Number(&self.lexer.input[self.lexer.index - c.len_utf8()..self.lexer.index])
+            Token::Number(self.lexer.grab_slice(c.len_utf8()))
         } else {
             self.lexer.next_token()
         };
@@ -75,13 +74,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_text(&mut self) -> &'a str {
-        self.next_token();
-        let mut offset = 0;
-        while let Token::Letter(x, _) = self.cur {
-            offset += x.len();
+        // self.next_token(); // skip {
+        let start = self.lexer.index - self.lexer.cur.len_utf8();
+        while self.peek != Token::RSeperator("}") {
             self.next_token();
         }
-        &self.lexer.input[self.lexer.index - offset..self.lexer.index]
+        let end = self.lexer.index - self.lexer.cur.len_utf8();
+        self.next_token();
+        // self.next_token();
+        &self.lexer.input[start..end]
     }
 
     fn next_node(&mut self) -> Node<'a> {
@@ -112,11 +113,13 @@ impl<'a> Parser<'a> {
             Token::Space(space) => Node::Space(space),
             Token::Sqrt => {
                 self.next_token();
-                let degree = (self.cur == Token::LSeperator("[")).then(|| {
-                    let degree = self.parse_group(Token::RSeperator("]"));
-                    self.next_token();
-                    degree
-                }).flatten();
+                let degree = (self.cur == Token::LSeperator("["))
+                    .then(|| {
+                        let degree = self.parse_group(Token::RSeperator("]"));
+                        self.next_token();
+                        degree
+                    })
+                    .flatten();
                 let content = self.next_node();
                 Node::Sqrt(degree.map(Box::new), Box::new(content))
             }
@@ -133,8 +136,8 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let denominator = self.next_node();
                 let binom = Node::Fenced {
-                    open: "(",
-                    close: ")",
+                    open: Node::StrechedOp(true, "(").into(),
+                    close: Node::StrechedOp(true, ")").into(),
                     content: Box::new(Node::Frac(
                         Box::new(numerator),
                         Box::new(denominator),
@@ -312,58 +315,50 @@ impl<'a> Parser<'a> {
                 }
                 _ => Node::Operator(int),
             },
-            Token::LSeperator(open) => {
-                // if open == "left" {
-                //   self.next_token();
-                //   let open = match self.cur {
-                //     Token
-                //   }
-                // }
-
-                let close = match open {
-                    "(" => ")",
-                    "[" => "]",
-                    "{" => "}",
-                    "⌈" => "⌉",
-                    "⌊" => "⌋",
-                    "⦗" => "⦘",
-                    "⟦" => "⟧",
-                    "|" => "|",
-                    _ => unreachable!("Should not happen"),
+            Token::LSeperator(open) => (|| {
+                let open = if open == "left" {
+                    // self.next_token();
+                    self.next_token();
+                    self.single_node()
+                } else {
+                    Node::Operator(open)
                 };
-                let content = self.parse_group(Token::RSeperator(close));
-                match content {
-                    Some(inner) => Node::Fenced {
-                        open,
-                        close,
-                        content: Box::new(inner),
-                    },
-                    None => Node::OtherOperator(open),
+                let token = match &open {
+                    Node::Operator("(") => Token::RSeperator(")"),
+                    Node::Operator("[") => Token::RSeperator("]"),
+                    Node::Operator("{") => Token::RSeperator("}"),
+                    Node::Operator("⌈") => Token::RSeperator("⌉"),
+                    Node::Operator("⌊") => Token::RSeperator("⌋"),
+                    Node::Operator("⦗") => Token::RSeperator("⦘"),
+                    Node::Operator("⟦") => Token::RSeperator("⟧"),
+                    Node::Operator("|") => Token::RSeperator("|"),
+                    _ => Token::RSeperator("right"),
+                };
+                let content = self.parse_group(token);
+                let Some(content) = content else {
+                    return open;
+                };
+                let open = if let Node::Operator(op) = open {
+                    Node::StrechedOp(true, op)
+                } else {
+                    open
+                };
+                let close = if self.cur == Token::RSeperator("right") {
+                    // self.next_token();
+                    self.next_token();
+                    self.single_node()
+                } else {
+                    Node::StrechedOp(true, token.to_str().unwrap())
+                };
+                Node::Fenced {
+                    open: open.arg(),
+                    close: close.arg(),
+                    content: Box::new(content),
                 }
-            }
+            })(),
             Token::Paren("|") => self
                 .parse_group(Token::Paren("|"))
                 .unwrap_or(Node::Operator("|")),
-            // Token::Left => {
-            //     self.next_token();
-            //     let open = match self.cur {
-            //         Token::Paren(open) => open,
-            //         Token::Operator('.') => '\u{0}',
-            //         token => todo!("Error handling? {token:?}"),
-            //     };
-            //     let content = self.parse_group(Token::Right);
-            //     self.next_token();
-            //     let close = match self.cur {
-            //         Token::Paren(close) => close,
-            //         Token::Operator('.') => '\u{0}',
-            //         token => todo!("Error handling? {token:?}"),
-            //     };
-            //     Node::Fenced {
-            //         open,
-            //         close,
-            //         content: Box::new(content),
-            //     }
-            // }
             Token::Middle => {
                 let stretchy = true;
                 self.next_token();
@@ -377,7 +372,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 match self.cur {
                     Token::Paren(paren) => Node::SizedParen { size, paren },
-                    token => todo!("Error handling? {token:?}"),
+                    token => Node::Undefined(token),
                 }
             }
             Token::Begin => {
@@ -390,23 +385,33 @@ impl<'a> Parser<'a> {
                 };
                 let content = self
                     .parse_group(Token::End)
-                    .unwrap_or(Node::Undefined(Token::EOF)); // TODO is this correct?
+                    .unwrap_or(Node::Undefined(Token::EOF));
                 let content = Node::Matrix(Box::new(content), columnalign);
                 let matrix = match environment {
                     "matrix" => content,
                     "pmatrix" => Node::Fenced {
-                        open: "(",
-                        close: ")",
+                        open: Node::StrechedOp(true,"(").into(),
+                        close: Node::StrechedOp(true,")").into(),
                         content: Box::new(content),
                     },
                     "bmatrix" => Node::Fenced {
-                        open: "[",
-                        close: "]",
+                        open: Node::StrechedOp(true,"[").into(),
+                        close: Node::StrechedOp(true,"]").into(),
                         content: Box::new(content),
                     },
                     "vmatrix" => Node::Fenced {
-                        open: "|",
-                        close: "|",
+                        open: Node::StrechedOp(true,"|").into(),
+                        close: Node::StrechedOp(true,"|").into(),
+                        content: Box::new(content),
+                    },
+                    "Bmatrix" => Node::Fenced {
+                        open: Node::StrechedOp(true,"{").into(),
+                        close: Node::StrechedOp(true,"}").into(),
+                        content: Box::new(content),
+                    },
+                    "Vmatrix" => Node::Fenced {
+                        open: Node::StrechedOp(true,"║").into(),
+                        close: Node::StrechedOp(true,"║").into(),
                         content: Box::new(content),
                     },
                     environment => Node::Text(environment),
@@ -423,7 +428,7 @@ impl<'a> Parser<'a> {
             Token::Text => {
                 self.next_token();
                 let text = self.parse_text();
-                Node::Text(text)                                                                                         
+                Node::Text(text)
             }
             Token::Ampersand => Node::Ampersand,
             Token::NewLine => Node::NewLine,
@@ -445,65 +450,5 @@ fn set_variant(node: Node, var: Variant) -> Node {
         Node::Letter(x, _) => Node::Letter(x, var),
         Node::Row(vec) => Node::Row(vec.into_iter().map(|node| set_variant(node, var)).collect()),
         node => node,
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    // #[test]
-    // fn test_parser_runs() {
-    //   let input = r#"
-    //   \frac{\dv}{\dv x}\int_{a(x)}^{b(x)}f(x,t)\dv t = f(x,b(x))\cdot \frac{\dv}{\dv x} b(x) - f(x, a(x))\cdot \frac{\dv}{\dv x}a(x) + \int_{a(x)}^{b(x)}\frac{\partial}{\partial x}f(x,t)\dv t
-    //   "#;
-    //   let mut parser = Parser::new(input);
-    //   let ast = parser.parse();
-    // }
-
-    #[test]
-    fn test_frac() {
-        let input = r#"\frac{x + 1}{y - 2}"#;
-        let ast = Parser::new(input).parse();
-        assert_eq!(
-            ast,
-            vec![Node::Frac(
-                Box::new(Node::Row(vec![
-                    Node::Letter("x", Variant::Italic),
-                    Node::Operator("+"),
-                    Node::Number("1"),
-                ])),
-                Box::new(Node::Row(vec![
-                    Node::Letter("y", Variant::Italic),
-                    Node::Operator("-"),
-                    Node::Number("2"),
-                ])),
-                LineThickness::Medium,
-            ),]
-        );
-    }
-
-    #[test]
-    fn test_int() {
-        let input = r#"\int_{a}^bf(x)dv x"#;
-        let ast = Parser::new(input).parse();
-        assert_eq!(
-            ast,
-            vec![
-                Node::SubSup {
-                    target: Box::new(Node::Operator("∫")),
-                    sub: Box::new(Node::Letter("a", Variant::Italic)),
-                    sup: Box::new(Node::Letter("b", Variant::Italic)),
-                },
-                Node::Letter("f", Variant::Italic),
-                Node::Fenced {
-                    open: "(",
-                    close: ")",
-                    content: Box::new(Node::Letter("x", Variant::Italic))
-                },
-                Node::Undefined(Token::Command("dv")),
-                Node::Letter("x", Variant::Italic),
-            ]
-        );
     }
 }

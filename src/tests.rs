@@ -64,10 +64,20 @@ fn test_parser_int() {
 
 #[test]
 fn test_parser_text() {
-  test_parser("\\text{Hello World}   x", vec![
-    Node::Text("Hello World"),
-    Node::Letter("x", Variant::Italic)
-  ]);
+    test_parser(
+        "\\text{Hello World}   x",
+        vec![
+            Node::Text("Hello World"),
+            Node::Letter("x", Variant::Italic),
+        ],
+    );
+    test_parser(
+        "\\text{Hello World}x",
+        vec![
+            Node::Text("Hello World"),
+            Node::Letter("x", Variant::Italic),
+        ],
+    );
 }
 
 #[test]
@@ -185,6 +195,29 @@ fn lexer_test_runs() {
         (r"\ 1", vec![Token::Space(1.), Token::Number("1")]),
     ];
     test_lexer(problems);
+}
+
+#[test]
+fn test_lexer_text() {
+    test_lexer(vec![(
+        "\\text{Hello World}   x",
+        vec![
+            Token::Text,
+            Token::LSeperator("{"),
+            Token::Letter("H", Variant::Italic),
+            Token::Letter("e", Variant::Italic),
+            Token::Letter("l", Variant::Italic),
+            Token::Letter("l", Variant::Italic),
+            Token::Letter("o", Variant::Italic),
+            Token::Letter("W", Variant::Italic),
+            Token::Letter("o", Variant::Italic),
+            Token::Letter("r", Variant::Italic),
+            Token::Letter("l", Variant::Italic),
+            Token::Letter("d", Variant::Italic),
+            Token::RSeperator("}"),
+            Token::Letter("x", Variant::Italic),
+        ],
+    )]);
 }
 
 #[test]
