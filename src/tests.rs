@@ -63,6 +63,14 @@ fn test_parser_int() {
 }
 
 #[test]
+fn test_parser_text() {
+  test_parser("\\text{Hello World}   x", vec![
+    Node::Text("Hello World"),
+    Node::Letter("x", Variant::Italic)
+  ]);
+}
+
+#[test]
 fn test_parser_group() {
     test_parser(
         "{{{a}}} fxb",
