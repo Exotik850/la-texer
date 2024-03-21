@@ -20,30 +20,30 @@ pub enum Variant {
 }
 
 impl Variant {
-  pub fn to_str(self) -> &'static str {
-    match self {
-      Variant::Normal              => "normal",
-      Variant::Italic              => "italic",
-      Variant::Bold                => "bold",
-      Variant::BoldItalic          => "bold-italic",
-      Variant::DoubleStruck        => "double-struck",
-      Variant::BoldFraktur         => "bold-fraktur",
-      Variant::Script              => "script",
-      Variant::BoldScript          => "bold-script",
-      Variant::Fraktur             => "fraktur",
-      Variant::SansSerif           => "sans-serif",
-      Variant::BoldSansSerif       => "bold-sans-serif",
-      Variant::SansSerifItalic     => "sans-serif-italic",
-      Variant::SansSerifBoldItalic => "sans-serif-bold-italic",
-      Variant::Monospace           => "monospace",
+    pub fn to_str(self) -> &'static str {
+        match self {
+            Variant::Normal => "normal",
+            Variant::Italic => "italic",
+            Variant::Bold => "bold",
+            Variant::BoldItalic => "bold-italic",
+            Variant::DoubleStruck => "double-struck",
+            Variant::BoldFraktur => "bold-fraktur",
+            Variant::Script => "script",
+            Variant::BoldScript => "bold-script",
+            Variant::Fraktur => "fraktur",
+            Variant::SansSerif => "sans-serif",
+            Variant::BoldSansSerif => "bold-sans-serif",
+            Variant::SansSerifItalic => "sans-serif-italic",
+            Variant::SansSerifBoldItalic => "sans-serif-bold-italic",
+            Variant::Monospace => "monospace",
+        }
     }
-  }
 }
 
 impl std::fmt::Display for Variant {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      write!(f, "{}", self.to_str())
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,12 +53,12 @@ pub enum DisplayStyle {
 }
 
 impl DisplayStyle {
-  pub fn to_str(self) -> &'static str {
-    match self {
-      DisplayStyle::Block  => "block",
-      DisplayStyle::Inline => "inline",
+    pub fn to_str(self) -> &'static str {
+        match self {
+            DisplayStyle::Block => "block",
+            DisplayStyle::Inline => "inline",
+        }
     }
-  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -68,12 +68,12 @@ pub enum Accent {
 }
 
 impl std::fmt::Display for Accent {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      match self {
-          Accent::True  => write!(f, "true"),
-          Accent::False => write!(f, "false"),
-      }
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Accent::True => write!(f, "true"),
+            Accent::False => write!(f, "false"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -85,14 +85,14 @@ pub enum LineThickness {
 }
 
 impl std::fmt::Display for LineThickness {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      match self {
-          LineThickness::Thin   => write!(f, "thin"),
-          LineThickness::Medium => write!(f, "medium"),
-          LineThickness::Thick  => write!(f, "thick"),
-          LineThickness::Length(l) => write!(f, "{}", l),
-      }
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LineThickness::Thin => write!(f, "thin"),
+            LineThickness::Medium => write!(f, "medium"),
+            LineThickness::Thick => write!(f, "thick"),
+            LineThickness::Length(l) => write!(f, "{}", l),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,13 +103,13 @@ pub enum ColumnAlign {
 }
 
 impl std::fmt::Display for ColumnAlign {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      match self {
-          ColumnAlign::Center => write!(f, "center"),
-          ColumnAlign::Left   => write!(f, "left"),
-          ColumnAlign::Right  => write!(f, "right"),
-      }
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ColumnAlign::Center => write!(f, "center"),
+            ColumnAlign::Left => write!(f, "left"),
+            ColumnAlign::Right => write!(f, "right"),
+        }
+    }
 }
 
 pub trait ParseNodes<'a> {
@@ -125,45 +125,47 @@ where
     }
 }
 
+type NodeBox<'a> = Box<Node<'a>>;
+
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node<'a> {
     Number(&'a str),
     Letter(&'a str, Variant),
     Operator(&'a str),
-    Function(&'a str, Option<Box<Node<'a>>>),
+    Function(&'a str, Option<NodeBox<'a>>),
     Space(f32),
-    Subscript(Box<Node<'a>>, Box<Node<'a>>),
-    Superscript(Box<Node<'a>>, Box<Node<'a>>),
+    Subscript(NodeBox<'a>, NodeBox<'a>),
+    Superscript(NodeBox<'a>, NodeBox<'a>),
     SubSup {
-        target: Box<Node<'a>>,
-        sub: Box<Node<'a>>,
-        sup: Box<Node<'a>>,
+        target: NodeBox<'a>,
+        sub: NodeBox<'a>,
+        sup: NodeBox<'a>,
     },
-    OverOp(&'a str, Accent, Box<Node<'a>>),
-    UnderOp(&'a str, Accent, Box<Node<'a>>),
+    OverOp(&'a str, Accent, NodeBox<'a>),
+    UnderOp(&'a str, Accent, NodeBox<'a>),
     Overset {
-        over: Box<Node<'a>>,
-        target: Box<Node<'a>>,
+        over: NodeBox<'a>,
+        target: NodeBox<'a>,
     },
     Underset {
-        under: Box<Node<'a>>,
-        target: Box<Node<'a>>,
+        under: NodeBox<'a>,
+        target: NodeBox<'a>,
     },
-    Under(Box<Node<'a>>, Box<Node<'a>>),
+    Under(NodeBox<'a>, NodeBox<'a>),
     UnderOver {
-        target: Box<Node<'a>>,
-        under: Box<Node<'a>>,
-        over: Box<Node<'a>>,
+        target: NodeBox<'a>,
+        under: NodeBox<'a>,
+        over: NodeBox<'a>,
     },
-    Sqrt(Option<Box<Node<'a>>>, Box<Node<'a>>),
-    Frac(Box<Node<'a>>, Box<Node<'a>>, LineThickness),
+    Sqrt(Option<NodeBox<'a>>, NodeBox<'a>),
+    Frac(NodeBox<'a>, NodeBox<'a>, LineThickness),
     // Row(smallvec::SmallVec<[Node<'a>;N]>),
     Row(Vec<Node<'a>>),
     Fenced {
-        open: &'a str,
-        close: &'a str,
-        content: Box<Node<'a>>,
+        open: NodeBox<'a>,
+        close: NodeBox<'a>,
+        content: NodeBox<'a>,
     },
     StrechedOp(bool, &'a str),
     OtherOperator(&'a str),
@@ -172,21 +174,41 @@ pub enum Node<'a> {
         paren: &'a str,
     },
     Text(&'a str),
-    Matrix(Box<Node<'a>>, ColumnAlign),
+    Matrix(NodeBox<'a>, ColumnAlign),
     Ampersand,
     NewLine,
-    Slashed(Box<Node<'a>>),
-    Style(DisplayStyle, Box<Node<'a>>),
+    Slashed(NodeBox<'a>),
+    Style(DisplayStyle, NodeBox<'a>),
     Undefined(Token<'a>),
 }
 
 impl<'a> Node<'a> {
-  pub fn arg(self) -> Box<Node<'a>> {
-    match self {
-      Node::Fenced { open: "{", close: "}", content } => content,
-      _ => Box::new(self),
+    pub fn arg(self) -> NodeBox<'a> {
+        match self {
+            Node::Fenced {
+                open,
+                close,
+                content,
+            } if *open == Node::StrechedOp(true, "{") && *close == Node::StrechedOp(true, "}") => content,
+            _ => Box::new(self),
+        }
     }
-  }
+
+    /// Returns the inner string of the node if it is a Node that contains a string.
+    pub fn inner_str(&'a self) -> Option<&'a str> {
+        match self {
+            Node::Number(s)
+            | Node::Letter(s, _)
+            | Node::Operator(s)
+            | Node::Function(s, _)
+            | Node::OtherOperator(s)
+            | Node::StrechedOp(_, s)
+            | Node::UnderOp(s, _, _)
+            | Node::OverOp(s, _, _) => Some(s),
+            Node::Text(s) | Node::SizedParen { paren: s, .. } => Some(s),
+            _ => None,
+        }
+    }
 }
 
 // pub struct NodeIter<'a> {
