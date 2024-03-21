@@ -171,9 +171,8 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
         }
         Node::Style(display, content) => {
             match display {
-                Some(DisplayStyle::Block) => write!(buf, "<mstyle displaystyle=\"true\">"),
-                Some(DisplayStyle::Inline) => write!(buf, "<mstyle displaystyle=\"false\">"),
-                None => write!(buf, "<mstyle displaystyle=\"true\">"),
+                DisplayStyle::Block => write!(buf, "<mstyle displaystyle=\"true\">"),
+                DisplayStyle::Inline => write!(buf, "<mstyle displaystyle=\"false\">"),
             }?;
             expand_node(content, buf)?;
             write!(buf, "</mstyle>")

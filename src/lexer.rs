@@ -107,7 +107,7 @@ impl<'a> Lexer<'a> {
             '⦘' => Token::RSeperator("⦘"),
             '⟦' => Token::LSeperator("⟦"),
             '⟧' => Token::RSeperator("⟧"),
-            '|' => Token::Paren('|'),
+            '|' => Token::Paren("|"),
             '+' => Token::Operator("+"),
             '-' => Token::Operator("-"),
             '*' => Token::Operator("*"),
@@ -157,6 +157,15 @@ mod tests {
     use super::super::token::Token;
     use super::Lexer;
 
+    fn handle_test(inputs: Vec<(&str, Vec<Token>)>) {
+      for (problem, answer) in inputs.iter() {
+        let mut lexer = Lexer::new(problem);
+        for answer in answer.iter() {
+            assert_eq!(&lexer.next_token(), answer);
+        }
+      }
+    }
+
     #[test]
     fn lexer_test() {
         let problems = vec![
@@ -190,12 +199,92 @@ mod tests {
             ),
             (r"\ 1", vec![Token::Space(1.), Token::Number("1")]),
         ];
+        handle_test(problems);
+    }
 
-        for (problem, answer) in problems.iter() {
-            let mut lexer = Lexer::new(problem);
-            for answer in answer.iter() {
-                assert_eq!(&lexer.next_token(), answer);
-            }
-        }
+    #[test]
+    fn test_frac() {
+      let input = vec!(
+        ("\\fracab", vec!(
+          Token::Command("fracab")
+        )),
+        ("\\frac{a}{b}", vec!(
+          Token::Frac,
+          Token::LSeperator("{"),
+          Token::Letter("a", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::LSeperator("{"),
+          Token::Letter("b", Variant::Italic),
+          Token::RSeperator("}"),
+        )),
+        ("\\frac{a}{b}c", vec!(
+          Token::Frac,
+          Token::LSeperator("{"),
+          Token::Letter("a", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::LSeperator("{"),
+          Token::Letter("b", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::Letter("c", Variant::Italic),
+        )),
+        ("\\frac{a}{\\frac{d}{e}}c", vec!(
+          Token::Frac,
+          Token::LSeperator("{"),
+          Token::Letter("a", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::LSeperator("{"),
+          Token::Frac,
+          Token::LSeperator("{"),
+          Token::Letter("d", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::LSeperator("{"),
+          Token::Letter("e", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::RSeperator("}"),
+          Token::Letter("c", Variant::Italic),
+        )),
+        (r#"\int_{a}^bf(x)dv x"#, vec![
+          Token::Integral("∫"),
+          Token::Underscore,
+          Token::LSeperator("{"),
+          Token::Letter("a", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::Circumflex,
+          Token::Letter("b", Variant::Italic),
+          Token::Letter("f", Variant::Italic),
+          Token::LSeperator("("),
+          Token::Letter("x", Variant::Italic),
+          Token::RSeperator(")"),
+          Token::Letter("d", Variant::Italic),
+          Token::Letter("v", Variant::Italic),
+          Token::Letter("x", Variant::Italic),
+        
+        ])
+      );
+      handle_test(input);
+    }
+
+    #[test]
+    fn test_int() {
+      handle_test(vec![
+        ("\\int^{a}_{b} f(x)", vec![
+          Token::Integral("∫"),
+          Token::Circumflex,
+          Token::LSeperator("{"),
+          Token::Letter("a", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::Underscore,
+          Token::LSeperator("{"),
+          Token::Letter("b", Variant::Italic),
+          Token::RSeperator("}"),
+          Token::Letter("f", Variant::Italic),
+          Token::LSeperator("("),
+          Token::Letter("x", Variant::Italic),
+          Token::RSeperator(")"),
+        ]),
+        // ("", vec![
+
+        // ])
+      ]);
     }
 }

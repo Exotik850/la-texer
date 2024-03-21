@@ -38,6 +38,7 @@ impl<'a> Parser<'a> {
     pub fn parse(mut self) -> Vec<Node<'a>> {
         let mut nodes = Vec::new();
         while let Some(node) = self.next() {
+          // println!("{node:?}");
             nodes.push(node);
             self.next_token();
         }
@@ -89,14 +90,14 @@ impl<'a> Parser<'a> {
             Token::Underscore => {
                 self.next_token();
                 self.next_token();
-                let right = self.next_node();
-                Node::Subscript(Box::new(left), Box::new(right))
+                let right = self.next_node().arg();
+                Node::Subscript(Box::new(left), right)
             }
             Token::Circumflex => {
                 self.next_token();
                 self.next_token();
-                let right = self.next_node();
-                Node::Superscript(Box::new(left), Box::new(right))
+                let right = self.next_node().arg();
+                Node::Superscript(Box::new(left), right)
             }
             _ => left,
         }
@@ -111,13 +112,11 @@ impl<'a> Parser<'a> {
             Token::Space(space) => Node::Space(space),
             Token::Sqrt => {
                 self.next_token();
-                let degree = if self.cur == Token::Paren('[') {
-                    let degree = self.parse_group(Token::Paren(']'));
+                let degree = (self.cur == Token::LSeperator("[")).then(|| {
+                    let degree = self.parse_group(Token::RSeperator("]"));
                     self.next_token();
                     degree
-                } else {
-                    None
-                };
+                }).flatten();
                 let content = self.next_node();
                 Node::Sqrt(degree.map(Box::new), Box::new(content))
             }
@@ -126,11 +125,7 @@ impl<'a> Parser<'a> {
                 let numerator = self.next_node().arg();
                 self.next_token();
                 let denominator = self.next_node().arg();
-                Node::Frac(
-                    numerator,
-                    denominator,
-                    LineThickness::Medium,
-                )
+                Node::Frac(numerator, denominator, LineThickness::Medium)
             }
             Token::Binom(display) => {
                 self.next_token();
@@ -147,7 +142,7 @@ impl<'a> Parser<'a> {
                     )),
                 };
                 match display {
-                    Some(display) => Node::Style(Some(display), Box::new(binom)),
+                    Some(display) => Node::Style(display, Box::new(binom)),
                     None => binom,
                 }
             }
@@ -166,20 +161,14 @@ impl<'a> Parser<'a> {
                 let over = self.next_node().arg();
                 self.next_token();
                 let target = self.next_node().arg();
-                Node::Overset {
-                    over,
-                    target
-                }
+                Node::Overset { over, target }
             }
             Token::Underset => {
                 self.next_token();
                 let under = self.next_node().arg();
                 self.next_token();
                 let target = self.next_node().arg();
-                Node::Underset {
-                    under,
-                    target,
-                }
+                Node::Underset { under, target }
             }
             Token::Overbrace(x) => {
                 self.next_token();
@@ -267,8 +256,8 @@ impl<'a> Parser<'a> {
                 if self.peek == Token::Underscore {
                     self.next_token();
                     self.next_token();
-                    let under = self.next_node().arg();
-                    Node::Under(Box::new(lim), under)
+                    let under = self.next_node();
+                    Node::Under(Box::new(lim), Box::new(under))
                 } else {
                     lim
                 }
@@ -276,11 +265,12 @@ impl<'a> Parser<'a> {
             Token::Slashed => {
                 self.next_token();
                 self.next_token();
-                let node = self.next_node();
+                let node = self.next_node().arg();
                 self.next_token();
-                Node::Slashed(Box::new(node))
+                Node::Slashed(node)
             }
             Token::Style(var) => {
+                self.next_token();
                 self.next_token();
                 let node = self.next_node();
                 set_variant(node, var)
@@ -323,6 +313,13 @@ impl<'a> Parser<'a> {
                 _ => Node::Operator(int),
             },
             Token::LSeperator(open) => {
+                // if open == "left" {
+                //   self.next_token();
+                //   let open = match self.cur {
+                //     Token
+                //   }
+                // }
+
                 let close = match open {
                     "(" => ")",
                     "[" => "]",
@@ -344,8 +341,8 @@ impl<'a> Parser<'a> {
                     None => Node::OtherOperator(open),
                 }
             }
-            Token::Paren('|') => self
-                .parse_group(Token::Paren('|'))
+            Token::Paren("|") => self
+                .parse_group(Token::Paren("|"))
                 .unwrap_or(Node::Operator("|")),
             // Token::Left => {
             //     self.next_token();
@@ -426,7 +423,7 @@ impl<'a> Parser<'a> {
             Token::Text => {
                 self.next_token();
                 let text = self.parse_text();
-                Node::Text(text)
+                Node::Text(text)                                                                                         
             }
             Token::Ampersand => Node::Ampersand,
             Token::NewLine => Node::NewLine,
@@ -483,6 +480,30 @@ mod test {
                 ])),
                 LineThickness::Medium,
             ),]
+        );
+    }
+
+    #[test]
+    fn test_int() {
+        let input = r#"\int_{a}^bf(x)dv x"#;
+        let ast = Parser::new(input).parse();
+        assert_eq!(
+            ast,
+            vec![
+                Node::SubSup {
+                    target: Box::new(Node::Operator("∫")),
+                    sub: Box::new(Node::Letter("a", Variant::Italic)),
+                    sup: Box::new(Node::Letter("b", Variant::Italic)),
+                },
+                Node::Letter("f", Variant::Italic),
+                Node::Fenced {
+                    open: "(",
+                    close: ")",
+                    content: Box::new(Node::Letter("x", Variant::Italic))
+                },
+                Node::Undefined(Token::Command("dv")),
+                Node::Letter("x", Variant::Italic),
+            ]
         );
     }
 }

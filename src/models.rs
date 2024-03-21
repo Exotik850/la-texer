@@ -19,24 +19,30 @@ pub enum Variant {
     Monospace,
 }
 
+impl Variant {
+  pub fn to_str(self) -> &'static str {
+    match self {
+      Variant::Normal              => "normal",
+      Variant::Italic              => "italic",
+      Variant::Bold                => "bold",
+      Variant::BoldItalic          => "bold-italic",
+      Variant::DoubleStruck        => "double-struck",
+      Variant::BoldFraktur         => "bold-fraktur",
+      Variant::Script              => "script",
+      Variant::BoldScript          => "bold-script",
+      Variant::Fraktur             => "fraktur",
+      Variant::SansSerif           => "sans-serif",
+      Variant::BoldSansSerif       => "bold-sans-serif",
+      Variant::SansSerifItalic     => "sans-serif-italic",
+      Variant::SansSerifBoldItalic => "sans-serif-bold-italic",
+      Variant::Monospace           => "monospace",
+    }
+  }
+}
+
 impl std::fmt::Display for Variant {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      match self {
-          Variant::Normal              => write!(f, "normal"),
-          Variant::Italic              => write!(f, "italic"),
-          Variant::Bold                => write!(f, "bold"),
-          Variant::BoldItalic          => write!(f, "bold-italic"),
-          Variant::DoubleStruck        => write!(f, "double-struck"),
-          Variant::BoldFraktur         => write!(f, "bold-fraktur"),
-          Variant::Script              => write!(f, "script"),
-          Variant::BoldScript          => write!(f, "bold-script"),
-          Variant::Fraktur             => write!(f, "fraktur"),
-          Variant::SansSerif           => write!(f, "sans-serif"),
-          Variant::BoldSansSerif       => write!(f, "bold-sans-serif"),
-          Variant::SansSerifItalic     => write!(f, "sans-serif-italic"),
-          Variant::SansSerifBoldItalic => write!(f, "sans-serif-bold-italic"),
-          Variant::Monospace           => write!(f, "monospace"),
-      }
+      write!(f, "{}", self.to_str())
   }
 }
 
@@ -44,6 +50,15 @@ impl std::fmt::Display for Variant {
 pub enum DisplayStyle {
     Block,
     Inline,
+}
+
+impl DisplayStyle {
+  pub fn to_str(self) -> &'static str {
+    match self {
+      DisplayStyle::Block  => "block",
+      DisplayStyle::Inline => "inline",
+    }
+  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -97,6 +112,19 @@ impl std::fmt::Display for ColumnAlign {
   }
 }
 
+pub trait ParseNodes<'a> {
+    fn parse_latex(&'a self) -> Vec<Node<'a>>;
+}
+
+impl<'a, T> ParseNodes<'a> for T
+where
+    T: AsRef<str>,
+{
+    fn parse_latex(&'a self) -> Vec<Node<'a>> {
+        crate::Parser::new(self.as_ref()).parse()
+    }
+}
+
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node<'a> {
@@ -130,6 +158,7 @@ pub enum Node<'a> {
     },
     Sqrt(Option<Box<Node<'a>>>, Box<Node<'a>>),
     Frac(Box<Node<'a>>, Box<Node<'a>>, LineThickness),
+    // Row(smallvec::SmallVec<[Node<'a>;N]>),
     Row(Vec<Node<'a>>),
     Fenced {
         open: &'a str,
@@ -140,14 +169,14 @@ pub enum Node<'a> {
     OtherOperator(&'a str),
     SizedParen {
         size: &'a str,
-        paren: char,
+        paren: &'a str,
     },
     Text(&'a str),
     Matrix(Box<Node<'a>>, ColumnAlign),
     Ampersand,
     NewLine,
     Slashed(Box<Node<'a>>),
-    Style(Option<DisplayStyle>, Box<Node<'a>>),
+    Style(DisplayStyle, Box<Node<'a>>),
     Undefined(Token<'a>),
 }
 
