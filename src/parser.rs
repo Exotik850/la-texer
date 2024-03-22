@@ -316,46 +316,83 @@ impl<'a> Parser<'a> {
                 _ => Node::Operator(int),
             },
             Token::LSeperator(open) => (|| {
-                let open = if open == "left" {
-                    // self.next_token();
-                    self.next_token();
-                    self.single_node()
-                } else {
-                    Node::Operator(open)
+                let token = match open {
+                    "(" => ")",
+                    "[" => "]",
+                    "{" => "}",
+                    "⌈" => "⌉",
+                    "⌜" => "⌝",
+                    "⌞" => "⌟",
+                    "⌊" => "⌋",
+                    "⦗" => "⦘",
+                    "⟦" => "⟧",
+                    "|" => "|",
+                    open => unreachable!("Invalid open delimiter: {open}"),
                 };
-                let token = match &open {
-                    Node::Operator("(") => Token::RSeperator(")"),
-                    Node::Operator("[") => Token::RSeperator("]"),
-                    Node::Operator("{") => Token::RSeperator("}"),
-                    Node::Operator("⌈") => Token::RSeperator("⌉"),
-                    Node::Operator("⌊") => Token::RSeperator("⌋"),
-                    Node::Operator("⦗") => Token::RSeperator("⦘"),
-                    Node::Operator("⟦") => Token::RSeperator("⟧"),
-                    Node::Operator("|") => Token::RSeperator("|"),
-                    _ => Token::RSeperator("right"),
+                let Some(content) = self.parse_group(Token::RSeperator(token)) else {
+                    return Node::Operator(open);
                 };
-                let content = self.parse_group(token);
-                let Some(content) = content else {
-                    return open;
-                };
-                let open = if let Node::Operator(op) = open {
-                    Node::StrechedOp(true, op)
-                } else {
-                    open
-                };
-                let close = if self.cur == Token::RSeperator("right") {
-                    // self.next_token();
-                    self.next_token();
-                    self.single_node()
-                } else {
-                    Node::StrechedOp(true, token.to_str().unwrap())
-                };
+                let close = Node::StrechedOp(true, token).into();
                 Node::Fenced {
-                    open: open.arg(),
-                    close: close.arg(),
+                    open: Node::StrechedOp(true, open).into(),
+                    close,
                     content: Box::new(content),
                 }
             })(),
+            Token::Left => {
+                self.next_token();
+                let mut s = None;
+                let open = match self.cur {
+                    Token::LSeperator(op) => op,
+                    Token::Big(size) => {
+                        self.next_token();
+                        s = Some(size);
+                        match self.cur {
+                            Token::Paren(paren)
+                            | Token::LSeperator(paren)
+                            | Token::RSeperator(paren) => paren,
+                            token => todo!("Invalid token: {token:?}"),
+                        }
+                    }
+                    token => todo!("Invalid token: {token:?}"),
+                };
+                // self.next_token();
+                // let Some(content) = self.parse_group(Token::Right) else {
+                //   return open;
+                // };
+                let content = self.parse_group(Token::Right).unwrap(); // TODO
+                self.next_token();
+                let mut s2 = None;
+                let close = match self.cur {
+                    Token::RSeperator(op) | Token::Paren(op) => op,
+                    Token::Big(size) => {
+                        self.next_token();
+                        s2 = Some(size);
+                        match self.cur {
+                            Token::Paren(paren)
+                            | Token::LSeperator(paren)
+                            | Token::RSeperator(paren) => paren,
+                            token => todo!("Invalid token: {token:?}"),
+                        }
+                    }
+                    token => todo!("Invalid token: {token:?}"),
+                };
+
+                let open = match s {
+                    Some(size) => Node::SizedParen { size, paren: open },
+                    None => Node::StrechedOp(true, open),
+                };
+                let close = match s2 {
+                    Some(size) => Node::SizedParen { size, paren: close },
+                    None => Node::StrechedOp(true, close),
+                };
+
+                Node::Fenced {
+                    open: Box::new(open),
+                    close: Box::new(close),
+                    content: Box::new(content),
+                }
+            }
             Token::Paren("|") => self
                 .parse_group(Token::Paren("|"))
                 .unwrap_or(Node::Operator("|")),
@@ -371,64 +408,63 @@ impl<'a> Parser<'a> {
             Token::Big(size) => {
                 self.next_token();
                 match self.cur {
-                    Token::Paren(paren) => Node::SizedParen { size, paren },
+                    Token::Paren(paren) | Token::LSeperator(paren) | Token::RSeperator(paren) => {
+                        Node::SizedParen { size, paren }
+                    }
                     token => Node::Undefined(token),
                 }
             }
             Token::Begin => {
                 self.next_token();
                 let environment = self.parse_text();
-                let (columnalign, environment) = if environment == "align" {
+                // let environment = self.single_node().arg(self);
+                let (columnalign, environment) = if environment.starts_with("align") {
                     (ColumnAlign::Left, "matrix")
                 } else {
                     (ColumnAlign::Center, environment)
                 };
-                let content = self
-                    .parse_group(Token::End)
-                    .unwrap_or(Node::Undefined(Token::EOF));
-                let content = Node::Matrix(Box::new(content), columnalign);
-                let matrix = match environment {
-                    "matrix" => content,
-                    "pmatrix" => Node::Fenced {
-                        open: Node::StrechedOp(true,"(").into(),
-                        close: Node::StrechedOp(true,")").into(),
-                        content: Box::new(content),
-                    },
-                    "bmatrix" => Node::Fenced {
-                        open: Node::StrechedOp(true,"[").into(),
-                        close: Node::StrechedOp(true,"]").into(),
-                        content: Box::new(content),
-                    },
-                    "vmatrix" => Node::Fenced {
-                        open: Node::StrechedOp(true,"|").into(),
-                        close: Node::StrechedOp(true,"|").into(),
-                        content: Box::new(content),
-                    },
-                    "Bmatrix" => Node::Fenced {
-                        open: Node::StrechedOp(true,"{").into(),
-                        close: Node::StrechedOp(true,"}").into(),
-                        content: Box::new(content),
-                    },
-                    "Vmatrix" => Node::Fenced {
-                        open: Node::StrechedOp(true,"║").into(),
-                        close: Node::StrechedOp(true,"║").into(),
-                        content: Box::new(content),
-                    },
-                    environment => Node::Text(environment),
+
+                // Do we check here if the environment is the same?
+                let Some(content) = self.parse_group(Token::End) else {
+                    return Node::Text(environment);
                 };
                 self.next_token();
-                let _ = self.parse_text();
+                let _end_environment = self.parse_text(); // TODO check if it's the same as the start
+                let content = Node::Matrix(Box::new(content), columnalign);
+                let matrix = match environment {
+                    // TODO Add more environments, they are not all matrices
+                    "matrix" => content,
+                    "pmatrix" | "bmatrix" | "vmatrix" | "Bmatrix" | "Vmatrix" => {
+                        let (open, close) = match environment {
+                            "pmatrix" => ("(", ")"),
+                            "bmatrix" => ("[", "]"),
+                            "vmatrix" => ("|", "|"),
+                            "Bmatrix" => ("{", "}"),
+                            "Vmatrix" => ("║", "║"),
+                            _ => unreachable!(),
+                        };
+                        Node::Fenced {
+                            open: Box::new(Node::StrechedOp(true, open)),
+                            close: Box::new(Node::StrechedOp(true, close)),
+                            content: Box::new(content),
+                        }
+                    }
+                    environment => Node::Text(environment),
+                };
+
                 matrix
             }
-            Token::OperatorName => {
+            Token::Package | Token::OperatorName | Token::Text | Token::Title => {
+                let c = self.cur;
                 self.next_token();
-                let function = self.parse_text();
-                Node::Function(function, None)
-            }
-            Token::Text => {
-                self.next_token();
-                let text = self.parse_text();
-                Node::Text(text)
+                let content = self.parse_text();
+                match c {
+                    Token::Package => Node::Package(content),
+                    Token::OperatorName => Node::Function(content, None),
+                    Token::Text => Node::Text(content),
+                    Token::Title => Node::Title(content),
+                    _ => unreachable!(),
+                }
             }
             Token::Ampersand => Node::Ampersand,
             Token::NewLine => Node::NewLine,
