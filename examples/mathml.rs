@@ -1,13 +1,17 @@
-use std::io::Write;
 use la_texer::{DisplayStyle, Node, Parser};
+use std::io::Write;
 
 fn main() {
-    let input = r#"\begin{Vmatrix} \text{Whataburger} & 2 & 3 \\ a & b & c \end{Vmatrix}"#;
+    let input = r#"\begin{center} If the exponent on $R$, $1-P$ is positive, then as $R$ approaches infinity the term will explode into infinity as well. If the exponent $1-P1$ is negative, then as $R$ approaches infinity it will be ina denominator, and the term will approach 0.  \begin{tabular}{c|c|c} $1-P > 0$ & $P<1$ & Diverges  \\ $1-P < 0$ & $P>1$ & Converges \\ \end{tabular} \\ Convergence will lead to \end{center}"#;
     let parser = Parser::new(input);
     let mut output = Vec::new();
     {
         let mut bufwriter = std::io::BufWriter::new(&mut output);
-        write!(bufwriter, "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">").unwrap();
+        write!(
+            bufwriter,
+            "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">"
+        )
+        .unwrap();
         let tokens = parser.parse();
         println!("{tokens:#?}");
         for token in tokens.into_iter() {
@@ -126,8 +130,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             write!(
                 buf,
                 "<mrow>\
-                "
-                // <mo stretchy=\"true\" form=\"prefix\">"
+                " // <mo stretchy=\"true\" form=\"prefix\">"
             )?;
             expand_node(open, buf)?;
             // write!(buf, "</mo>")?;
@@ -148,23 +151,23 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             match content.as_ref() {
                 Node::Row(nodes) => {
                     for (i, node) in nodes.iter().enumerate() {
-                      match node {
-                        Node::NewLine => {
-                          write!(buf, "</mtd></mtr>")?;
-                          if i < nodes.len() {
-                              write!(buf, "<mtr><mtd>")?;
-                          }
+                        match node {
+                            Node::NewLine => {
+                                write!(buf, "</mtd></mtr>")?;
+                                if i < nodes.len() {
+                                    write!(buf, "<mtr><mtd>")?;
+                                }
+                            }
+                            Node::Ampersand => {
+                                write!(buf, "</mtd>")?;
+                                if i < nodes.len() {
+                                    write!(buf, "<mtd>")?;
+                                }
+                            }
+                            node => expand_node(node, buf)?,
                         }
-                        Node::Ampersand => {
-                          write!(buf, "</mtd>")?;
-                          if i < nodes.len() {
-                              write!(buf, "<mtd>")?;
-                          }
-                        }
-                        node => expand_node(node, buf)?,
-                      }
                     }
-                },
+                }
                 node => expand_node(node, buf)?,
             }
             write!(buf, "</mtr></mtd></mtable>")
@@ -185,5 +188,6 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             write!(buf, "</mstyle>")
         }
         Node::Undefined(token) => write!(buf, "<merror>{token:?}</merror>"),
+        _ => Ok(()),
     }
 }

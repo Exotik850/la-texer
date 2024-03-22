@@ -17,6 +17,7 @@ pub enum Variant {
     SansSerifItalic,
     SansSerifBoldItalic,
     Monospace,
+    Roman,
 }
 
 impl Variant {
@@ -36,6 +37,7 @@ impl Variant {
             Variant::SansSerifItalic => "sans-serif-italic",
             Variant::SansSerifBoldItalic => "sans-serif-bold-italic",
             Variant::Monospace => "monospace",
+            Variant::Roman => "roman",
         }
     }
 }
@@ -130,10 +132,13 @@ type NodeBox<'a> = Box<Node<'a>>;
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node<'a> {
+    Package(&'a str),
+    Text(&'a str),
+    Title(&'a str),
     Number(&'a str),
-    Letter(&'a str, Variant),
-    Operator(&'a str),
     Function(&'a str, Option<NodeBox<'a>>),
+    Operator(&'a str),
+    Letter(&'a str, Variant),
     Space(f32),
     Subscript(NodeBox<'a>, NodeBox<'a>),
     Superscript(NodeBox<'a>, NodeBox<'a>),
@@ -173,7 +178,6 @@ pub enum Node<'a> {
         size: &'a str,
         paren: &'a str,
     },
-    Text(&'a str),
     Matrix(NodeBox<'a>, ColumnAlign),
     Ampersand,
     NewLine,
