@@ -89,7 +89,7 @@ impl<'a> Token<'a> {
             "textbf" => Token::Style(Variant::Bold),
             "mathbf" => Token::Style(Variant::Bold),
             "bm" => Token::Style(Variant::BoldItalic),
-            "rm" => Token::Style(Variant::Roman),
+            "rm" => Token::Style(Variant::Normal),
             "it" => Token::Style(Variant::Italic),
             "bf" => Token::Style(Variant::Bold),
             "cal" => Token::Style(Variant::Script),
