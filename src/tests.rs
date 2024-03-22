@@ -72,9 +72,9 @@ fn test_parser_text() {
         ],
     );
     test_parser(
-        "\\text{Hello World}x",
+        "\\text{Hello World  }x",
         vec![
-            Node::Text("Hello World"),
+            Node::Text("Hello World  "),
             Node::Letter("x", Variant::Italic),
         ],
     );
@@ -110,43 +110,28 @@ fn test_parser_group() {
 #[test]
 fn test_parser_leftright_single() {
     test_parser(
-        r"\left c \frac{a}{b} \right d",
+        r"\left(\frac{a}{b}\right)",
         vec![Node::Fenced {
-            open: Node::Letter("c", Variant::Italic).into(),
-            close: Node::Letter("d", Variant::Italic).into(),
+            open: Node::StrechedOp(true, "(").into(),
+            close: Node::StrechedOp(true, ")").into(),
             content: Node::Frac(
-                Box::new(Node::Letter("a", Variant::Italic)),
-                Box::new(Node::Letter("b", Variant::Italic)),
+                Node::Letter("a", Variant::Italic).into(),
+                Node::Letter("b", Variant::Italic).into(),
                 LineThickness::Medium,
             )
             .into(),
         }],
     );
-}
-
-#[test]
-fn test_parser_leftright_group() {
     test_parser(
-        r"\left{a+b} \frac{a}{b} \right{7x-3}",
+        r"\left\{ a+b\right\}",
         vec![Node::Fenced {
-            open: Node::Row(vec![
+            open: Node::StrechedOp(true, "{").into(),
+            close: Node::StrechedOp(true, "}").into(),
+            content: Node::Row(vec![
                 Node::Letter("a", Variant::Italic),
                 Node::Operator("+"),
                 Node::Letter("b", Variant::Italic),
             ])
-            .into(),
-            close: Node::Row(vec![
-                Node::Number("7"),
-                Node::Letter("x", Variant::Italic),
-                Node::Operator("-"),
-                Node::Number("3"),
-            ])
-            .into(),
-            content: Node::Frac(
-                Box::new(Node::Letter("a", Variant::Italic)),
-                Box::new(Node::Letter("b", Variant::Italic)),
-                LineThickness::Medium,
-            )
             .into(),
         }],
     );
