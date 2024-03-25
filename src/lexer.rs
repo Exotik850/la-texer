@@ -1,5 +1,5 @@
 use crate::{models::Variant, token::Token};
-use std::str::Chars;
+use core::str::Chars;
 
 /// Lexer
 #[derive(Debug, Clone)]

@@ -4,6 +4,9 @@ use crate::{
     token::Token,
 };
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,

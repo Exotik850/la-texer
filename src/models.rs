@@ -1,4 +1,6 @@
 use crate::token::Token;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 /// mi mathvariant attribute
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -42,8 +44,8 @@ impl Variant {
     }
 }
 
-impl std::fmt::Display for Variant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Variant {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.to_str())
     }
 }
@@ -69,8 +71,8 @@ pub enum Accent {
     False,
 }
 
-impl std::fmt::Display for Accent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Accent {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Accent::True => write!(f, "true"),
             Accent::False => write!(f, "false"),
@@ -86,8 +88,8 @@ pub enum LineThickness {
     Length(u8),
 }
 
-impl std::fmt::Display for LineThickness {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for LineThickness {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             LineThickness::Thin => write!(f, "thin"),
             LineThickness::Medium => write!(f, "medium"),
@@ -104,8 +106,8 @@ pub enum ColumnAlign {
     Right,
 }
 
-impl std::fmt::Display for ColumnAlign {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for ColumnAlign {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             ColumnAlign::Center => write!(f, "center"),
             ColumnAlign::Left => write!(f, "left"),
