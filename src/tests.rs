@@ -38,6 +38,64 @@ fn test_parser_frac() {
 }
 
 #[test]
+fn test_parser_subsup() {
+    let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}_{n}^{\infty}"#;
+    let ast = input.parse_latex();
+    assert_eq!(
+        ast,
+        vec![Node::SubSup {
+            target: Node::Fenced {
+                open: Node::StrechedOp(true, "{").into(),
+                close: Node::StrechedOp(true, "}").into(),
+                content: Node::Row(vec![
+                    Node::Function("sin", None),
+                    Node::Fenced {
+                        open: Node::StrechedOp(true, "(").into(),
+                        close: Node::StrechedOp(true, ")").into(),
+                        content: Node::Frac(
+                            Node::Number("1").into(),
+                            Node::Letter("n", Variant::Italic).into(),
+                            LineThickness::Medium
+                        )
+                        .into()
+                    }
+                ]).into()
+            }
+            .into(),
+            sub: Node::Letter("n", Variant::Italic).into(),
+            sup: Node::Letter("∞", Variant::Normal).into(),
+        }]
+    );
+    let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}^{\infty}_{n}"#;
+    let ast = input.parse_latex();
+    assert_eq!(
+        ast,
+        vec![Node::SubSup {
+            target: Node::Fenced {
+                open: Node::StrechedOp(true, "{").into(),
+                close: Node::StrechedOp(true, "}").into(),
+                content: Node::Row(vec![
+                    Node::Function("sin", None),
+                    Node::Fenced {
+                        open: Node::StrechedOp(true, "(").into(),
+                        close: Node::StrechedOp(true, ")").into(),
+                        content: Node::Frac(
+                            Node::Number("1").into(),
+                            Node::Letter("n", Variant::Italic).into(),
+                            LineThickness::Medium
+                        )
+                        .into()
+                    }
+                ]).into()
+            }
+            .into(),
+            sup: Node::Letter("∞", Variant::Normal).into(),
+            sub: Node::Letter("n", Variant::Italic).into(),
+        }]
+    );
+}
+
+#[test]
 fn test_parser_int() {
     let input = r#"\int_{a}^bf(x)dv x"#;
     let ast = Parser::new(input).parse();
@@ -67,14 +125,14 @@ fn test_parser_text() {
     test_parser(
         "\\text{Hello World}   x",
         vec![
-            Node::Text("Hello World"),
+            Node::Text("Hello World", Variant::Normal),
             Node::Letter("x", Variant::Italic),
         ],
     );
     test_parser(
         "\\text{Hello World  }x",
         vec![
-            Node::Text("Hello World  "),
+            Node::Text("Hello World  ", Variant::Normal),
             Node::Letter("x", Variant::Italic),
         ],
     );

@@ -76,10 +76,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_text(&mut self) -> &'a str {
+    fn parse_text(&mut self, end: Token) -> &'a str {
         // self.next_token(); // skip {
         let start = self.lexer.index - self.lexer.cur.len_utf8();
-        while self.peek != Token::RSeperator("}") {
+        while self.peek != end {
             self.next_token();
         }
         let end = self.lexer.index - self.lexer.cur.len_utf8();
@@ -88,25 +88,43 @@ impl<'a> Parser<'a> {
         &self.lexer.input[start..end]
     }
 
+    /// Collects the next node from the input, checking for subscripts and superscripts thereafter
     fn next_node(&mut self) -> Node<'a> {
         let left = self.single_node();
         match self.peek {
             Token::Underscore => {
                 self.next_token();
                 self.next_token();
-                let right = self.next_node().arg();
-                Node::Subscript(Box::new(left), right)
+                let right = self.single_node().arg();
+                match self.peek {
+                  Token::Circumflex => {
+                    self.next_token();
+                    self.next_token();
+                    let upper = self.single_node().arg();
+                    Node::SubSup { target: left.into(), sub: right, sup: upper }
+                  },
+                  _ => Node::Subscript(Box::new(left), right) 
+                }
             }
             Token::Circumflex => {
                 self.next_token();
                 self.next_token();
-                let right = self.next_node().arg();
-                Node::Superscript(Box::new(left), right)
+                let right = self.single_node().arg();
+                match self.peek {
+                  Token::Underscore => {
+                    self.next_token();
+                    self.next_token();
+                    let lower = self.single_node().arg();
+                    Node::SubSup { target: left.into(), sub: lower, sup: right }
+                  }
+                  _ => Node::Superscript(Box::new(left), right)
+                }
             }
             _ => left,
         }
     }
 
+    /// Collects a single node from the input, does not check for any superscript or subscript thereafter
     fn single_node(&mut self) -> Node<'a> {
         let node = match self.cur {
             Token::Number(number) => Node::Number(number),
@@ -164,16 +182,16 @@ impl<'a> Parser<'a> {
             }
             Token::Overset => {
                 self.next_token();
-                let over = self.next_node().arg();
+                let over = self.single_node().arg();
                 self.next_token();
-                let target = self.next_node().arg();
+                let target = self.single_node().arg();
                 Node::Overset { over, target }
             }
             Token::Underset => {
                 self.next_token();
-                let under = self.next_node().arg();
+                let under = self.single_node().arg();
                 self.next_token();
-                let target = self.next_node().arg();
+                let target = self.single_node().arg();
                 Node::Underset { under, target }
             }
             Token::Overbrace(x) => {
@@ -262,23 +280,23 @@ impl<'a> Parser<'a> {
                 if self.peek == Token::Underscore {
                     self.next_token();
                     self.next_token();
-                    let under = self.next_node();
-                    Node::Under(Box::new(lim), Box::new(under))
+                    let under = self.single_node().arg();
+                    Node::Under(Box::new(lim), under)
                 } else {
                     lim
                 }
             }
             Token::Slashed => {
                 self.next_token();
-                self.next_token();
-                let node = self.next_node().arg();
-                self.next_token();
+                // self.next_token();
+                let node = self.single_node().arg();
+                // self.next_token();
                 Node::Slashed(node)
             }
             Token::Style(var) => {
                 self.next_token();
-                self.next_token();
-                let node = self.next_node();
+                // self.next_token();
+                let node = self.single_node();
                 set_variant(node, var)
             }
             Token::Integral(int) => match self.peek {
@@ -419,7 +437,7 @@ impl<'a> Parser<'a> {
             }
             Token::Begin => {
                 self.next_token();
-                let environment = self.parse_text();
+                let environment = self.parse_text(Token::RSeperator("}"));
                 // let environment = self.single_node().arg(self);
                 let (columnalign, environment) = if environment.starts_with("align") {
                     (ColumnAlign::Left, "matrix")
@@ -429,10 +447,10 @@ impl<'a> Parser<'a> {
 
                 // Do we check here if the environment is the same?
                 let Some(content) = self.parse_group(Token::End) else {
-                    return Node::Text(environment);
+                    return Node::Text(environment, Variant::Normal);
                 };
                 self.next_token();
-                let _end_environment = self.parse_text(); // TODO check if it's the same as the start
+                let _end_environment = self.parse_text(Token::RSeperator("}")); // TODO check if it's the same as the start
                 let content = Node::Matrix(Box::new(content), columnalign);
                 let matrix = match environment {
                     // TODO Add more environments, they are not all matrices
@@ -452,7 +470,7 @@ impl<'a> Parser<'a> {
                             content: Box::new(content),
                         }
                     }
-                    environment => Node::Text(environment),
+                    environment => Node::Text(environment, Variant::Normal),
                 };
 
                 matrix
@@ -460,11 +478,11 @@ impl<'a> Parser<'a> {
             Token::Package | Token::OperatorName | Token::Text | Token::Title => {
                 let c = self.cur;
                 self.next_token();
-                let content = self.parse_text();
+                let content = self.parse_text(Token::RSeperator("}"));
                 match c {
                     Token::Package => Node::Package(content),
                     Token::OperatorName => Node::Function(content, None),
-                    Token::Text => Node::Text(content),
+                    Token::Text => Node::Text(content, Variant::Normal),
                     Token::Title => Node::Title(content),
                     _ => unreachable!(),
                 }
@@ -484,6 +502,7 @@ impl<'a> Parser<'a> {
     }
 }
 
+/// Recursively sets all the letters to the given Variant
 fn set_variant(node: Node, var: Variant) -> Node {
     match node {
         Node::Letter(x, _) => Node::Letter(x, var),

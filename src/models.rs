@@ -19,7 +19,6 @@ pub enum Variant {
     SansSerifItalic,
     SansSerifBoldItalic,
     Monospace,
-    Roman,
 }
 
 impl Variant {
@@ -39,7 +38,6 @@ impl Variant {
             Variant::SansSerifItalic => "sans-serif-italic",
             Variant::SansSerifBoldItalic => "sans-serif-bold-italic",
             Variant::Monospace => "monospace",
-            Variant::Roman => "roman",
         }
     }
 }
@@ -131,16 +129,17 @@ where
 
 type NodeBox<'a> = Box<Node<'a>>;
 
+// What other nodes need variant?
 /// AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node<'a> {
     Package(&'a str),
-    Text(&'a str),
     Title(&'a str),
     Number(&'a str),
-    Function(&'a str, Option<NodeBox<'a>>),
     Operator(&'a str),
+    Text(&'a str, Variant),
     Letter(&'a str, Variant),
+    Function(&'a str, Option<NodeBox<'a>>),
     Space(f32),
     Subscript(NodeBox<'a>, NodeBox<'a>),
     Superscript(NodeBox<'a>, NodeBox<'a>),
@@ -211,7 +210,7 @@ impl<'a> Node<'a> {
             | Node::StrechedOp(_, s)
             | Node::UnderOp(s, _, _)
             | Node::OverOp(s, _, _) => Some(s),
-            Node::Text(s) | Node::SizedParen { paren: s, .. } => Some(s),
+            Node::Text(s, _) | Node::SizedParen { paren: s, .. } => Some(s),
             _ => None,
         }
     }

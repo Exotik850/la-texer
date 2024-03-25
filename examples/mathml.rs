@@ -144,7 +144,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
         Node::SizedParen { size, paren } => {
             write!(buf, "<mrow><mo maxsize=\"{size}\">{paren}</mo></mrow>")
         }
-        Node::Text(text) => write!(buf, "<mtext>{text}</mtext>"),
+        Node::Text(text, _) => write!(buf, "<mtext>{text}</mtext>"),
         Node::Matrix(content, align) => {
             write!(buf, "<mtable align=\"{align}\"><mtr><mtd>")?;
 
