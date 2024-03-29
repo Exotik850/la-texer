@@ -79,7 +79,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             expand_node(over, buf)?;
             write!(buf, "</mover>")
         }
-        Node::Underset { under, target } | Node::Under(target, under) => {
+        Node::Underset { under, target } => {
             write!(buf, "<munder>")?;
             expand_node(target, buf)?;
             expand_node(under, buf)?;

@@ -261,7 +261,7 @@ impl<'a> Parser<'a> {
                             over,
                         }
                     } else {
-                        Node::Under(Box::new(Node::Operator(op)), under)
+                        Node::Underset{ target: Box::new(Node::Operator(op)), under }
                     }
                 }
                 Token::Circumflex => {
@@ -289,7 +289,7 @@ impl<'a> Parser<'a> {
                     self.next_token();
                     self.next_token();
                     let under = self.single_node().arg();
-                    Node::Under(Box::new(lim), under)
+                    Node::Underset{ target: Box::new(lim), under }
                 } else {
                     lim
                 }

@@ -158,7 +158,6 @@ pub enum Node<'a> {
         under: NodeBox<'a>,
         target: NodeBox<'a>,
     },
-    Under(NodeBox<'a>, NodeBox<'a>),
     UnderOver {
         target: NodeBox<'a>,
         under: NodeBox<'a>,
