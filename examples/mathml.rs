@@ -30,7 +30,7 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             _ => write!(buf, "<mi mathvariant=\"{var}\">{letter}</mi>"),
         },
         Node::Operator(op) => {
-            if *op == "" {
+            if op.is_empty() {
                 write!(buf, "<mo mathvariant=\"italic\">∂</mo>")
             } else {
                 write!(buf, "<mo>{op}</mo>")

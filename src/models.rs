@@ -194,7 +194,9 @@ impl<'a> Node<'a> {
                 open,
                 close,
                 content,
-            } if *open == Node::StrechedOp(true, "{") && *close == Node::StrechedOp(true, "}") => content,
+            } if *open == Node::StrechedOp(true, "{") && *close == Node::StrechedOp(true, "}") => {
+                content
+            }
             _ => Box::new(self),
         }
     }

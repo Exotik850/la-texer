@@ -59,7 +59,8 @@ fn test_parser_subsup() {
                         )
                         .into()
                     }
-                ]).into()
+                ])
+                .into()
             }
             .into(),
             sub: Node::Letter("n", Variant::Italic).into(),
@@ -86,7 +87,8 @@ fn test_parser_subsup() {
                         )
                         .into()
                     }
-                ]).into()
+                ])
+                .into()
             }
             .into(),
             sup: Node::Letter("∞", Variant::Normal).into(),

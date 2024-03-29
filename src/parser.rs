@@ -97,13 +97,17 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let right = self.single_node().arg();
                 match self.peek {
-                  Token::Circumflex => {
-                    self.next_token();
-                    self.next_token();
-                    let upper = self.single_node().arg();
-                    Node::SubSup { target: left.into(), sub: right, sup: upper }
-                  },
-                  _ => Node::Subscript(Box::new(left), right) 
+                    Token::Circumflex => {
+                        self.next_token();
+                        self.next_token();
+                        let upper = self.single_node().arg();
+                        Node::SubSup {
+                            target: left.into(),
+                            sub: right,
+                            sup: upper,
+                        }
+                    }
+                    _ => Node::Subscript(Box::new(left), right),
                 }
             }
             Token::Circumflex => {
@@ -111,13 +115,17 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let right = self.single_node().arg();
                 match self.peek {
-                  Token::Underscore => {
-                    self.next_token();
-                    self.next_token();
-                    let lower = self.single_node().arg();
-                    Node::SubSup { target: left.into(), sub: lower, sup: right }
-                  }
-                  _ => Node::Superscript(Box::new(left), right)
+                    Token::Underscore => {
+                        self.next_token();
+                        self.next_token();
+                        let lower = self.single_node().arg();
+                        Node::SubSup {
+                            target: left.into(),
+                            sub: lower,
+                            sup: right,
+                        }
+                    }
+                    _ => Node::Superscript(Box::new(left), right),
                 }
             }
             _ => left,

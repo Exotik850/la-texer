@@ -6,3 +6,13 @@ edition = "2021"
 [dependencies]
 
 [dev-dependencies]
+criterion = "0.5.1"
+
+
+[[bench]]
+name = "parser"
+harness = false
+
+[[bench]]
+name = "lexer"
+harness = false

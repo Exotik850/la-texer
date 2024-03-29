@@ -1,4 +1,4 @@
-use la_texer::{Node, ParseNodes};
+use la_texer::ParseNodes;
 
 fn main() {
     let input = r#"\text{Hello World}"#;
