@@ -71,8 +71,8 @@ impl<'a> Lexer<'a> {
 
     fn read_command(&mut self) -> Token<'a> {
         self.read_char(); // skip '\'
+        let start = self.index;
         self.read_char();
-        let start = self.index - 1;
         while self.cur.is_ascii_alphabetic() {
             self.read_char();
         }
