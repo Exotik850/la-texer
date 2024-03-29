@@ -40,7 +40,7 @@ fn test_parser_frac() {
 #[test]
 fn test_parser_subsup() {
     let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}_{n}^{\infty}"#;
-    let ast = input.parse_latex();
+    let ast = input.into_nodes();
     assert_eq!(
         ast,
         vec![Node::SubSup {
@@ -68,7 +68,7 @@ fn test_parser_subsup() {
         }]
     );
     let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}^{\infty}_{n}"#;
-    let ast = input.parse_latex();
+    let ast = input.into_nodes();
     assert_eq!(
         ast,
         vec![Node::SubSup {
@@ -402,4 +402,43 @@ fn test_lexer_int() {
             Token::RSeperator(")"),
         ],
     )]);
+}
+
+#[test]
+fn test_replace_latex_inline() {
+    let input = r#"This is a text $\alpha 90$ some more text $\frac{a+b}{2}$"#;
+    let output = replace_latex(input);
+    assert_eq!(
+        output,
+        vec![
+            TexNode::Text("This is a text "),
+            TexNode::Inline(Node::Row(vec![
+                Node::Letter("α", Variant::Italic),
+                Node::Number("90"),
+            ])),
+            TexNode::Text(" some more text "),
+            TexNode::Inline(Node::Frac(
+                Box::new(Node::Row(vec![
+                    Node::Letter("a", Variant::Italic),
+                    Node::Operator("+"),
+                    Node::Letter("b", Variant::Italic),
+                ])),
+                Box::new(Node::Number("2")),
+                LineThickness::Medium,
+            )),
+        ]
+    );
+}
+
+#[test]
+fn test_replace_latex_block() {
+    let input = r#"$$\alpha 90$$"#;
+    let output = replace_latex(input);
+    assert_eq!(
+        output,
+        vec![TexNode::Block(Node::Row(vec![
+            Node::Letter("α", Variant::Italic),
+            Node::Number("90"),
+        ]))]
+    );
 }

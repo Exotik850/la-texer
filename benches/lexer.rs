@@ -22,7 +22,7 @@ fn bench_tokenize_simple(c: &mut Criterion) {
 
     c.bench_function("tokenize_simple", |b| {
         b.iter(|| {
-            let mut lexer = la_texer::Lexer::new(black_box(input));
+            let lexer = la_texer::Lexer::new(black_box(input));
             for token in lexer {
                 black_box(token);
             }

@@ -114,15 +114,15 @@ impl core::fmt::Display for ColumnAlign {
     }
 }
 
-pub trait ParseNodes<'a> {
-    fn parse_latex(&'a self) -> Vec<Node<'a>>;
+pub trait IntoTexNodes<'a> {
+    fn into_nodes(&'a self) -> Vec<Node<'a>>;
 }
 
-impl<'a, T> ParseNodes<'a> for T
+impl<'a, T> IntoTexNodes<'a> for T
 where
     T: AsRef<str>,
 {
-    fn parse_latex(&'a self) -> Vec<Node<'a>> {
+    fn into_nodes(&'a self) -> Vec<Node<'a>> {
         crate::Parser::new(self.as_ref()).parse()
     }
 }
