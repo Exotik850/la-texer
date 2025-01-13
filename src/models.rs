@@ -120,7 +120,7 @@ pub trait IntoTexNodes<'a> {
 
 impl<'a, T> IntoTexNodes<'a> for T
 where
-    T: AsRef<str>,
+    T: AsRef<str> + ?Sized,
 {
     fn into_nodes(&'a self) -> Vec<Node<'a>> {
         crate::Parser::new(self.as_ref()).parse()

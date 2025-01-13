@@ -442,3 +442,38 @@ fn test_replace_latex_block() {
         ]))]
     );
 }
+
+#[test]
+fn test_replacer_equals_function_inline() {
+  let input = r#"This is some text $\frac{a}{b} = \frac{c}{d}$ with text afterwards"#;
+  let output = replace_latex(input);
+  let output_iter = input.parse_latex();
+  assert_eq!(output, output_iter.collect::<Vec<_>>());
+}
+
+#[test]
+fn test_replacer_equals_function_block() {
+  let input = r#" This is some text beforehand
+  $$
+  \frac{a}{b} = \frac{c}{d}
+  $$
+  with some text afterwards
+  "#;
+  let output = replace_latex(input);
+  let output_iter = input.parse_latex();
+  assert_eq!(output, output_iter.collect::<Vec<_>>());
+}
+
+#[test]
+fn test_replacer_equals_function_block_inline() {
+  let input = r#" This is some text beforehand
+  $$
+  \frac{a}{b} = \frac{c}{d}
+  $$
+  with some text afterwards
+  $\frac{a}{b} = \frac{c}{d}$
+  "#;
+  let output = replace_latex(input);
+  let output_iter = input.parse_latex();
+  assert_eq!(output, output_iter.collect::<Vec<_>>());
+}
