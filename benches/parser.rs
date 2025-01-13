@@ -9,19 +9,19 @@ fn bench_parse_complex(c: &mut Criterion) {
         b.iter(|| {
             let parser = Parser::new(black_box(&input));
             black_box(parser.parse())
-        })
+        });
     });
 }
 
 /// Benchmarks the performance of parsing a simple LaTeX expression.
 fn bench_parse_simple(c: &mut Criterion) {
-    let input = r#"\frac{\frac{\frac{100000}{x_{7y-2}}}{x + 3^{24}}}{y - 2}"#.repeat(1000);
+    let input = r"\frac{\frac{\frac{100000}{x_{7y-2}}}{x + 3^{24}}}{y - 2}".repeat(1000);
 
     c.bench_function("parse_simple", |b| {
         b.iter(|| {
             let parser = Parser::new(black_box(&input));
             black_box(parser.parse())
-        })
+        });
     });
 }
 

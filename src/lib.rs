@@ -147,7 +147,7 @@ where
   }
 }
 
-pub fn replace_latex<'a>(input: &'a str) -> Vec<TexNode<'a>> {
+#[must_use] pub fn replace_latex(input: &str) -> Vec<TexNode<'_>> {
     let mut out = Vec::new();
     let mut last = 0;
     let mut chars = input.char_indices().peekable();

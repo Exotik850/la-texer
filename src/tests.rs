@@ -8,16 +8,16 @@ fn test_parser(input: &str, expected: Vec<Node>) {
 
 #[test]
 fn test_parser_runs() {
-    let input = r#"
+    let input = r"
   \frac{\dv}{\dv x}\int_{a(x)}^{b(x)}f(x,t)\dv t = f(x,b(x))\cdot \frac{\dv}{\dv x} b(x) - f(x, a(x))\cdot \frac{\dv}{\dv x}a(x) + \int_{a(x)}^{b(x)}\frac{\partial}{\partial x}f(x,t)\dv t
-  "#;
+  ";
     let parser = Parser::new(input);
     let _ast = parser.parse();
 }
 
 #[test]
 fn test_parser_frac() {
-    let input = r#"\frac{x + 1}{y - 2}"#;
+    let input = r"\frac{x + 1}{y - 2}";
     let ast = Parser::new(input).parse();
     assert_eq!(
         ast,
@@ -39,7 +39,7 @@ fn test_parser_frac() {
 
 #[test]
 fn test_parser_subsup() {
-    let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}_{n}^{\infty}"#;
+    let input = r"\left\{\sin\left(\frac{1}{n}\right)\right\}_{n}^{\infty}";
     let ast = input.into_nodes();
     assert_eq!(
         ast,
@@ -67,7 +67,7 @@ fn test_parser_subsup() {
             sup: Node::Letter("∞", Variant::Normal).into(),
         }]
     );
-    let input = r#"\left\{\sin\left(\frac{1}{n}\right)\right\}^{\infty}_{n}"#;
+    let input = r"\left\{\sin\left(\frac{1}{n}\right)\right\}^{\infty}_{n}";
     let ast = input.into_nodes();
     assert_eq!(
         ast,
@@ -99,7 +99,7 @@ fn test_parser_subsup() {
 
 #[test]
 fn test_parser_int() {
-    let input = r#"\int_{a}^bf(x)dv x"#;
+    let input = r"\int_{a}^bf(x)dv x";
     let ast = Parser::new(input).parse();
     assert_eq!(
         ast,
@@ -164,7 +164,7 @@ fn test_parser_group() {
             Node::Letter("x", Variant::Italic),
             Node::Letter("b", Variant::Italic),
         ],
-    )
+    );
 }
 
 #[test]
@@ -198,9 +198,9 @@ fn test_parser_leftright_single() {
 }
 
 fn test_lexer(inputs: Vec<(&str, Vec<Token>)>) {
-    for (problem, answer) in inputs.iter() {
+    for (problem, answer) in &inputs {
         let mut lexer = Lexer::new(problem);
-        for answer in answer.iter() {
+        for answer in answer {
             assert_eq!(&lexer.next_token(), answer);
         }
     }
@@ -314,7 +314,7 @@ fn test_lexer_frac() {
             ],
         ),
         (
-            r#"\int_{a}^bf(x)dv x"#,
+            r"\int_{a}^bf(x)dv x",
             vec![
                 Token::Integral("∫"),
                 Token::Underscore,
@@ -379,7 +379,7 @@ fn test_lexer_group() {
                 Token::RSeperator("]"),
             ],
         ),
-    ])
+    ]);
 }
 
 #[test]
@@ -406,7 +406,7 @@ fn test_lexer_int() {
 
 #[test]
 fn test_replace_latex_inline() {
-    let input = r#"This is a text $\alpha 90$ some more text $\frac{a+b}{2}$"#;
+    let input = r"This is a text $\alpha 90$ some more text $\frac{a+b}{2}$";
     let output = replace_latex(input);
     assert_eq!(
         output,
@@ -432,7 +432,7 @@ fn test_replace_latex_inline() {
 
 #[test]
 fn test_replace_latex_block() {
-    let input = r#"$$\alpha 90$$"#;
+    let input = r"$$\alpha 90$$";
     let output = replace_latex(input);
     assert_eq!(
         output,
@@ -445,7 +445,7 @@ fn test_replace_latex_block() {
 
 #[test]
 fn test_replacer_equals_function_inline() {
-  let input = r#"This is some text $\frac{a}{b} = \frac{c}{d}$ with text afterwards"#;
+  let input = r"This is some text $\frac{a}{b} = \frac{c}{d}$ with text afterwards";
   let output = replace_latex(input);
   let output_iter = input.parse_latex();
   assert_eq!(output, output_iter.collect::<Vec<_>>());
@@ -453,12 +453,12 @@ fn test_replacer_equals_function_inline() {
 
 #[test]
 fn test_replacer_equals_function_block() {
-  let input = r#" This is some text beforehand
+  let input = r" This is some text beforehand
   $$
   \frac{a}{b} = \frac{c}{d}
   $$
   with some text afterwards
-  "#;
+  ";
   let output = replace_latex(input);
   let output_iter = input.parse_latex();
   assert_eq!(output, output_iter.collect::<Vec<_>>());
@@ -466,13 +466,13 @@ fn test_replacer_equals_function_block() {
 
 #[test]
 fn test_replacer_equals_function_block_inline() {
-  let input = r#" This is some text beforehand
+  let input = r" This is some text beforehand
   $$
   \frac{a}{b} = \frac{c}{d}
   $$
   with some text afterwards
   $\frac{a}{b} = \frac{c}{d}$
-  "#;
+  ";
   let output = replace_latex(input);
   let output_iter = input.parse_latex();
   assert_eq!(output, output_iter.collect::<Vec<_>>());

@@ -29,7 +29,7 @@ impl<'a> Iterator for Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(input: &'a str) -> Self {
+    #[must_use] pub fn new(input: &'a str) -> Self {
         let mut lexer = Lexer::new(input);
         Self {
             cur: lexer.next_token(),
@@ -38,7 +38,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> Vec<Node<'a>> {
+    #[must_use] pub fn parse(mut self) -> Vec<Node<'a>> {
         let mut nodes = Vec::new();
         while self.cur != Token::EOF {
             nodes.push(self.next_node());

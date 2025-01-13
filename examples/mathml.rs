@@ -2,7 +2,7 @@ use la_texer::{DisplayStyle, Node, Parser};
 use std::io::Write;
 
 fn main() {
-    let input = r#"\begin{center} If the exponent on $R$, $1-P$ is positive, then as $R$ approaches infinity the term will explode into infinity as well. If the exponent $1-P1$ is negative, then as $R$ approaches infinity it will be ina denominator, and the term will approach 0.  \begin{tabular}{c|c|c} $1-P > 0$ & $P<1$ & Diverges  \\ $1-P < 0$ & $P>1$ & Converges \\ \end{tabular} \\ Convergence will lead to \end{center}"#;
+    let input = r"\begin{center} If the exponent on $R$, $1-P$ is positive, then as $R$ approaches infinity the term will explode into infinity as well. If the exponent $1-P1$ is negative, then as $R$ approaches infinity it will be ina denominator, and the term will approach 0.  \begin{tabular}{c|c|c} $1-P > 0$ & $P<1$ & Diverges  \\ $1-P < 0$ & $P>1$ & Converges \\ \end{tabular} \\ Convergence will lead to \end{center}";
     let parser = Parser::new(input);
     let mut output = Vec::new();
     {
@@ -14,7 +14,7 @@ fn main() {
         .unwrap();
         let tokens = parser.parse();
         println!("{tokens:#?}");
-        for token in tokens.into_iter() {
+        for token in tokens {
             expand_node(&token, &mut bufwriter).unwrap();
         }
         write!(bufwriter, "</math>").unwrap();
@@ -96,18 +96,15 @@ fn expand_node(node: &Node, buf: &mut dyn Write) -> std::io::Result<()> {
             expand_node(over, buf)?;
             write!(buf, "</munderover>")
         }
-        Node::Sqrt(degree, content) => match degree {
-            Some(degree) => {
-                write!(buf, "<mroot>")?;
-                expand_node(content, buf)?;
-                expand_node(degree, buf)?;
-                write!(buf, "</mroot>")
-            }
-            None => {
-                write!(buf, "<msqrt>")?;
-                expand_node(content, buf)?;
-                write!(buf, "</msqrt>")
-            }
+        Node::Sqrt(degree, content) => if let Some(degree) = degree {
+            write!(buf, "<mroot>")?;
+            expand_node(content, buf)?;
+            expand_node(degree, buf)?;
+            write!(buf, "</mroot>")
+        } else {
+            write!(buf, "<msqrt>")?;
+            expand_node(content, buf)?;
+            write!(buf, "</msqrt>")
         },
         Node::Frac(num, denom, lt) => {
             write!(buf, "<mfrac linethickness=\"{lt}\">")?;

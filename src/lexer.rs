@@ -26,7 +26,7 @@ impl<'a> Iterator for Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// 入力ソースコードを受け取り Lexer インスタンスを生成する.
-    pub fn new(input: &'a str) -> Self {
+    #[must_use] pub fn new(input: &'a str) -> Self {
         let mut chars = input.chars();
         Lexer {
             input,
@@ -48,9 +48,7 @@ impl<'a> Lexer<'a> {
 
     #[inline]
     pub(crate) fn grab_slice(&self, offset: usize) -> &'a str {
-        if offset > self.index {
-            panic!("offset is greater than index");
-        }
+        assert!(offset <= self.index, "offset is greater than index");
 
         if offset > self.input.len() {
             return self.input;

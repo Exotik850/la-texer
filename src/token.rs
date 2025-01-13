@@ -81,7 +81,7 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn from_command(command: &str) -> Token {
+    #[must_use] pub fn from_command(command: &str) -> Token {
         match command {
             "mathrm" => Token::Style(Variant::Normal),
             "textit" => Token::Style(Variant::Italic),

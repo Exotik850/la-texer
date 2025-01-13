@@ -22,7 +22,7 @@ pub enum Variant {
 }
 
 impl Variant {
-    pub fn to_str(self) -> &'static str {
+    #[must_use] pub fn to_str(self) -> &'static str {
         match self {
             Variant::Normal => "normal",
             Variant::Italic => "italic",
@@ -55,7 +55,7 @@ pub enum DisplayStyle {
 }
 
 impl DisplayStyle {
-    pub fn to_str(self) -> &'static str {
+    #[must_use] pub fn to_str(self) -> &'static str {
         match self {
             DisplayStyle::Block => "block",
             DisplayStyle::Inline => "inline",
@@ -92,7 +92,7 @@ impl core::fmt::Display for LineThickness {
             LineThickness::Thin => write!(f, "thin"),
             LineThickness::Medium => write!(f, "medium"),
             LineThickness::Thick => write!(f, "thick"),
-            LineThickness::Length(l) => write!(f, "{}", l),
+            LineThickness::Length(l) => write!(f, "{l}"),
         }
     }
 }
@@ -187,7 +187,7 @@ pub enum Node<'a> {
 }
 
 impl<'a> Node<'a> {
-    pub fn arg(self) -> NodeBox<'a> {
+    #[must_use] pub fn arg(self) -> NodeBox<'a> {
         match self {
             Node::Fenced {
                 open,
@@ -201,7 +201,7 @@ impl<'a> Node<'a> {
     }
 
     /// Returns the inner string of the node if it is a Node that contains a string.
-    pub fn inner_str(&'a self) -> Option<&'a str> {
+    #[must_use] pub fn inner_str(&'a self) -> Option<&'a str> {
         match self {
             Node::Number(s)
             | Node::Letter(s, _)
